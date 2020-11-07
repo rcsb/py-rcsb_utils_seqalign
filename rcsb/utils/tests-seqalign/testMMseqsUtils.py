@@ -45,22 +45,28 @@ class MMseqsUtilsTests(unittest.TestCase):
         configName = "site_info_remote_configuration"
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=configName)
         #
-        self.__entityTaxonPath = os.path.join(self.__dataPath, "entity_taxon.tdd")
-        # self.__queryFastaPath = os.path.join(self.__dataPath, "adalimumab.fasta")
-        self.__queryFastaPath = os.path.join(self.__dataPath, "sabdab.fasta")
-
-        self.__sabDabFasta = os.path.join(self.__dataPath, "sabdab.fasta")
-        self.__antibodySeqDbName = "sabdab"
-        self.__seqDbNamePDB = "sabdab"
         self.__seqDbTopPath = os.path.join(self.__workPath, "db")
         self.__timeOut = 3600
-        self.__pdbFastaPath = os.path.join(self.__mockTopPath, "cluster_data", "mmseqs_clusters_current", "pdb_seq_pr.fasta")
+        #
+        self.__drugBankFastaPath = os.path.join(self.__dataPath, "drugbank_protein.fasta")
+        self.__drugBankTaxonPath = os.path.join(self.__dataPath, "drugbank_taxon.tdd")
+        self.__drugBankSeqDbName = "drugbank"
+        #
+        self.__queryFastaPath = os.path.join(self.__dataPath, "sabdab.fasta")
+        self.__sabDabFasta = os.path.join(self.__dataPath, "sabdab.fasta")
+        self.__antibodySeqDbName = "sabdab"
+        #
+        # self.__pdbFastaPath = os.path.join(self.__mockTopPath, "cluster_data", "mmseqs_clusters_current", "pdb_seq_pr.fasta")
+        self.__pdbFastaPath = os.path.join(self.__dataPath, "pdb_protein_sequences.fa.gz")
+        self.__pdbEntityTaxonPath = os.path.join(self.__dataPath, "pdb_entity_taxon.tdd")
         self.__pdbSeqDbName = "pdbpr"
         #
-        self.__easySearchResultPath = os.path.join(self.__workPath, "resultEasySearch.txt")
-        self.__searchResultPath = os.path.join(self.__workPath, "resultSearch.txt")
-        self.__mapResultPath = os.path.join(self.__workPath, "resultMapSearch.json")
-        self.__htmlMapResultPath = os.path.join(self.__workPath, "resultMapSearch.html")
+        self.__antibodyEasySearchResultPath = os.path.join(self.__workPath, "antibodyFesultEasySearch.txt")
+        self.__antibodySearchResultPath = os.path.join(self.__workPath, "antibodyResultSearch.txt")
+        self.__antibodyMapResultPath = os.path.join(self.__workPath, "antibodyResultMapSearch.json")
+        self.__antibodyHtmlMapResultPath = os.path.join(self.__workPath, "antibodyResultMapSearch.html")
+        #
+        self.__drugBankMapResultPath = os.path.join(self.__workPath, "drugBankResultMapSearch.json")
         #
         self.__startTime = time.time()
         logger.debug("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
@@ -70,9 +76,9 @@ class MMseqsUtilsTests(unittest.TestCase):
         logger.debug("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
     def testACreateDatabaseAntibody(self):
-        """Test case -  create sequence search database from fasta file"""
+        """Test case -  for SABDAB Antibody data, create sequence search database from fasta file"""
         try:
-            mmS = MMseqsUtils()
+            mmS = MMseqsUtils(cachePath=self.__workPath)
             ok = mmS.createSearchDatabase(self.__sabDabFasta, self.__seqDbTopPath, self.__antibodySeqDbName, timeOut=self.__timeOut)
             self.assertTrue(ok)
         except Exception as e:
@@ -80,9 +86,9 @@ class MMseqsUtilsTests(unittest.TestCase):
             self.fail()
 
     def testACreateDatabasePDB(self):
-        """Test case -  create sequence search database from fasta file"""
+        """Test case -  for PDB proteins, create sequence search database from fasta file"""
         try:
-            mmS = MMseqsUtils()
+            mmS = MMseqsUtils(cachePath=self.__workPath)
             ok = mmS.createSearchDatabase(self.__pdbFastaPath, self.__seqDbTopPath, self.__pdbSeqDbName, timeOut=self.__timeOut)
             self.assertTrue(ok)
         except Exception as e:
@@ -90,24 +96,45 @@ class MMseqsUtilsTests(unittest.TestCase):
             self.fail()
 
     def testBCreateTaxonomyDatabasePDB(self):
-        """Test case -  create taxonomy database from a search database"""
+        """Test case -  for PDB proteins, create taxonomy database from a search database"""
         try:
-            mmS = MMseqsUtils()
-            ok = mmS.createTaxonomySearchDatabase(self.__entityTaxonPath, self.__seqDbTopPath, self.__pdbSeqDbName, timeOut=self.__timeOut)
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.createTaxonomySearchDatabase(self.__pdbEntityTaxonPath, self.__seqDbTopPath, self.__pdbSeqDbName, timeOut=self.__timeOut)
             self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    def testEasySearchDatabase(self):
-        """Test case -  easy search workflow"""
+    def testACreateDatabaseDrugBank(self):
+        """Test case -  for DrugBank targets, create sequence search database from fasta file"""
         try:
-            mmS = MMseqsUtils()
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.createSearchDatabase(self.__drugBankFastaPath, self.__seqDbTopPath, self.__drugBankSeqDbName, timeOut=self.__timeOut)
+            self.assertTrue(ok)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    def testBCreateTaxonomyDatabaseDrugBank(self):
+        """Test case -  for DrugBank targets create taxonomy database from a search database"""
+        try:
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.createTaxonomySearchDatabase(self.__drugBankTaxonPath, self.__seqDbTopPath, self.__drugBankSeqDbName, timeOut=self.__timeOut)
+            self.assertTrue(ok)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    #
+    def testEasySearchDatabaseSabdabPDB(self):
+        """Test case -  easy search workflow - SABDAB vs PDB """
+        try:
+            mmS = MMseqsUtils(cachePath=self.__workPath)
             ok = mmS.easySearchDatabase(
                 self.__queryFastaPath,
                 self.__seqDbTopPath,
                 self.__pdbSeqDbName,
-                self.__easySearchResultPath,
+                self.__antibodyEasySearchResultPath,
                 minSeqId=0.95,
                 timeOut=self.__timeOut,
             )
@@ -116,15 +143,15 @@ class MMseqsUtilsTests(unittest.TestCase):
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    def testSearchDatabase(self):
-        """Test case -  search workflow"""
+    def testSearchDatabaseSabdabPDB(self):
+        """Test case -  search workflow  - SABDAB vs PDB"""
         try:
-            mmS = MMseqsUtils()
+            mmS = MMseqsUtils(cachePath=self.__workPath)
             ok = mmS.searchDatabase(
                 self.__queryFastaPath,
                 self.__seqDbTopPath,
                 self.__pdbSeqDbName,
-                self.__searchResultPath,
+                self.__antibodySearchResultPath,
                 minSeqId=0.95,
                 timeOut=self.__timeOut,
             )
@@ -133,29 +160,46 @@ class MMseqsUtilsTests(unittest.TestCase):
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    def testMapDatabase(self):
-        """Test case -  map similar sequences workflow"""
+    def testMapDatabaseSabdabPDB(self):
+        """Test case -  map similar sequences workflow  - SABDAB vs PDB"""
         try:
-            mmS = MMseqsUtils()
-            ok = mmS.mapDatabase(
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.mapDatabaseFasta(
                 self.__queryFastaPath,
                 self.__seqDbTopPath,
                 self.__pdbSeqDbName,
-                self.__mapResultPath,
+                self.__antibodyMapResultPath,
                 minSeqId=0.95,
                 timeOut=self.__timeOut,
+            )
+            self.assertTrue(ok)
+            mL = mmS.getMatchResults(self.__antibodyMapResultPath, None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0)
+            self.assertGreaterEqual(len(mL), 400)
+            #
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    def testMapDatabaseFormatOptSabdabPDB(self):
+        """Test case -  map similar sequences workflow with format mode output  - SABDAB vs PDB"""
+        try:
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.mapDatabaseFasta(
+                self.__queryFastaPath, self.__seqDbTopPath, self.__pdbSeqDbName, self.__antibodyHtmlMapResultPath, minSeqId=0.55, timeOut=self.__timeOut, formatMode=3
             )
             self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    def testMapDatabaseFormatOpt(self):
-        """Test case -  map similar sequences workflow with format mode output"""
+    def testMapDatabaseDrugBankPDB(self):
+        """Test case -  map similar sequences workflow with format mode output  - DrugBank vs PDB"""
         try:
-            mmS = MMseqsUtils()
-            ok = mmS.mapDatabase(self.__queryFastaPath, self.__seqDbTopPath, self.__pdbSeqDbName, self.__htmlMapResultPath, minSeqId=0.55, timeOut=self.__timeOut, formatMode=3)
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            ok = mmS.mapDatabase(self.__drugBankSeqDbName, self.__seqDbTopPath, self.__pdbSeqDbName, self.__drugBankMapResultPath, minSeqId=0.90, timeOut=self.__timeOut)
             self.assertTrue(ok)
+            mL = mmS.getMatchResults(self.__drugBankMapResultPath, self.__drugBankTaxonPath)
+            self.assertGreaterEqual(len(mL), 600)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
@@ -166,15 +210,19 @@ def suiteCreateDatabases():
     suiteSelect.addTest(MMseqsUtilsTests("testACreateDatabaseAntibody"))
     suiteSelect.addTest(MMseqsUtilsTests("testACreateDatabasePDB"))
     suiteSelect.addTest(MMseqsUtilsTests("testBCreateTaxonomyDatabasePDB"))
+    suiteSelect.addTest(MMseqsUtilsTests("testACreateDatabaseDrugBank"))
+    suiteSelect.addTest(MMseqsUtilsTests("testBCreateTaxonomyDatabaseDrugBank"))
     #
     return suiteSelect
 
 
 def suiteSearchModes():
     suiteSelect = unittest.TestSuite()
-    suiteSelect.addTest(MMseqsUtilsTests("testEasySearchDatabase"))
-    suiteSelect.addTest(MMseqsUtilsTests("testSearchDatabase"))
-    suiteSelect.addTest(MMseqsUtilsTests("testMapDatabase"))
+    suiteSelect.addTest(MMseqsUtilsTests("testEasySearchDatabaseSabdabPDB"))
+    suiteSelect.addTest(MMseqsUtilsTests("testSearchDatabaseSabdabPDB"))
+    suiteSelect.addTest(MMseqsUtilsTests("testMapDatabaseSabdabPDB"))
+    suiteSelect.addTest(MMseqsUtilsTests("testMapDatabaseFormatOptSabdabPDB"))
+    suiteSelect.addTest(MMseqsUtilsTests("testMapDatabaseDrugBankPDB"))
     #
     return suiteSelect
 

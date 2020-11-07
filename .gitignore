@@ -1,4 +1,5 @@
 .vscode
+idmapping.dat.gz
 test-output/
 !test-output/.gitkeep
 LOGTOX

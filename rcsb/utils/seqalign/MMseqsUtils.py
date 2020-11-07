@@ -33,7 +33,7 @@ import uuid
 
 from rcsb.utils.io.ExecUtils import ExecUtils
 from rcsb.utils.io.MarshalUtil import MarshalUtil
-from rcsb.utils.seqalign.MiscUtils import MiscUtils
+from rcsb.utils.taxonomy.TaxonomyProvider import TaxonomyProvider
 
 logger = logging.getLogger("__name__")
 
@@ -67,6 +67,9 @@ class MMseqsUtils(object):
             "taln": ("targetAlign", "str"),
             "cigar": ("cigar", "str"),
         }
+        self.__cachePath = kwargs.get("cachePath", ".")
+        self.__taxDirPath = os.path.join(self.__cachePath, "NCBI")
+        self.__taxU = None
 
     def createSearchDatabase(self, fastaPath, seqDbTopPath, seqDbName, **kwargs):
         """Create sequence search database from a FASTA file
@@ -138,25 +141,22 @@ class MMseqsUtils(object):
             dbPath = os.path.join(dbDir, seqDbName)
             dbLogPath = os.path.join(seqDbTopPath, seqDbName + ".log")
             #
-            ncbiTaxonomyDumpPath = os.path.join(seqDbTopPath, "ncbi-taxonomy")
-            #
-            if not self.__mU.exists(ncbiTaxonomyDumpPath):
-                ok1 = self.__getNcbiTaxonomyDatabaseDump(ncbiTaxonomyDumpPath)
+            if not self.__mU.exists(self.__taxDirPath):
+                ok1 = self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
                 if not ok1:
                     logger.error("Fetching NCBI taxonomy database dump failing")
                     return ok1
             #
-            ok = self.__createTaxonomySearchDatabase(taxonomyMappingPath, ncbiTaxonomyDumpPath, dbPath, tmpDir, dbLogPath, timeOut=timeOut)
+            ok = self.__createTaxonomySearchDatabase(taxonomyMappingPath, dbPath, tmpDir, dbLogPath, timeOut=timeOut)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def __createTaxonomySearchDatabase(self, taxonomyMappingPath, ncbiTaxonomyDumpPath, dbPath, tmpDir, outPath, timeOut=100):
+    def __createTaxonomySearchDatabase(self, taxonomyMappingPath, dbPath, tmpDir, outPath, timeOut=100):
         """Create taxonomy search database for the input search database
 
         Args:
             taxonomyMappingPath (str): taxonomy mapping file path
-            ncbiTaxonomyDumpPath (str): NCBI taxonomy database dump path
             dbPath (str): sequence search database path
             tmpDir (str): temporary directory
             outPath (str, optional): output log path. Defaults to "createTaxonomySearchDb.log".
@@ -170,20 +170,12 @@ class MMseqsUtils(object):
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
-                execArgList=["createtaxdb", dbPath, tmpDir, "--ncbi-tax-dump", ncbiTaxonomyDumpPath, "--tax-mapping-file", taxonomyMappingPath],
+                execArgList=["createtaxdb", dbPath, tmpDir, "--ncbi-tax-dump", self.__taxDirPath, "--tax-mapping-file", taxonomyMappingPath],
                 outPath=outPath,
                 outAppend=True,
                 timeOut=timeOut,
             )
             logger.info("status is %r", ok)
-        except Exception as e:
-            logger.exception("Failing with %s", str(e))
-        return ok
-
-    def __getNcbiTaxonomyDatabaseDump(self, ncbiTaxonomyDumpPath):
-        try:
-            mU = MiscUtils()
-            ok = mU.fetchNcbiTaxonomyDump(ncbiTaxonomyDumpPath)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -316,7 +308,7 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def mapDatabase(self, fastaPath, seqDbTopPath, seqDbName, resultPath, **kwargs):
+    def mapDatabaseFasta(self, fastaPath, seqDbTopPath, seqDbName, resultPath, **kwargs):
         """Map similar sequences between input FASTA file and input target database.
 
         Args:
@@ -361,6 +353,47 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
+    def mapDatabase(self, queryDbName, seqDbTopPath, seqDbName, resultPath, **kwargs):
+        """Map similar sequences between input query and target database.
+
+        Args:
+            queryDbName (str): name of the query sequence database
+            seqDbTopPath (str):  top path to search sequence database directories
+            seqDbName (str): name of the sequence search database
+            resultPath (str): search results path
+            minSeqId (float, optional): minimun sequence identity (default=0.95)
+            timeOut (int, optional): time out for the process excecution. Defaults to 3600 secs.
+            sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
+            eValCutoff  (int, optional): e-Value cuttof (default= 100)
+            formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
+            formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
+
+        Returns:
+            (bool): True for success or False otherwise
+        """
+        ok = False
+        try:
+            tmpDir = os.path.join(seqDbTopPath, "tmp")
+            self.__mU.mkdir(tmpDir)
+            resultDirPath = os.path.join(seqDbTopPath, "results")
+            self.__mU.mkdir(resultDirPath)
+            resultDbPath = os.path.join(resultDirPath, queryDbName)
+            #
+            targetDbPath = os.path.join(seqDbTopPath, seqDbName, seqDbName)
+            queryDbPath = os.path.join(seqDbTopPath, queryDbName, queryDbName)
+            #
+            dbLogPath = os.path.join(seqDbTopPath, queryDbName + ".log")
+            #
+            iP = os.path.join(resultDirPath, queryDbName + ".dbtype")
+            self.__mU.remove(iP)
+            #
+            ok1 = self.__mapDatabase(queryDbPath, targetDbPath, resultDbPath, tmpDir, dbLogPath, **kwargs)
+            ok2 = self.__formatSearchResults(queryDbPath, targetDbPath, resultDbPath, resultPath, dbLogPath, **kwargs)
+            ok = ok1 & ok2
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        return ok
+
     def __mapDatabase(self, queryDbPath, targetDbPath, resultDbPath, tmpDir, outPath, **kwargs):
         """Map close matching sequences between query and target databases"""
         ok = False
@@ -369,6 +402,8 @@ class MMseqsUtils(object):
             timeOut = kwargs.get("timeOut", 3600)
             sensitivity = kwargs.get("sensitivity", 1)
             eValCutoff = kwargs.get("eValCutoff", 100)
+            #
+
             #
             exU = ExecUtils()
             ok = exU.run(
@@ -448,3 +483,87 @@ class MMseqsUtils(object):
         except Exception as e:
             logger.exception("Failing for %r (%r) with %s", inpFileName, fmtOut, str(e))
         return ok
+
+    def __getNcbiTaxonomyDatabaseDump(self, ncbiTaxonomyDumpPath):
+        ok = False
+        try:
+            self.__taxU = TaxonomyProvider(taxDirPath=ncbiTaxonomyDumpPath, useCache=True)
+            ok = self.__taxU.testCache()
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        return ok
+
+    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
+        """[summary]
+
+        Args:
+            searchResultPath ([type]): [description]
+            queryTaxonD ([type]): [description]
+            fmt (str, optional): [description]. Defaults to "json".
+        Returns:
+            list: list of dictionaries containing match results
+
+        """
+        rL = self.__mU.doImport(jsonSearchResultPath, fmt="json")
+        queryTaxonD = None
+        if useTaxonomy and queryTaxonomyMappingPath:
+            rowL = self.__mU.doImport(queryTaxonomyMappingPath, fmt="tdd", rowFormat="list")
+            queryTaxonD = {row[0]: row[1] for row in rowL}
+        mL = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff)
+        return mL
+
+    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
+        """Get matches ...
+
+        Args:
+            searchDictL (list): list of candidate match dictionaries
+            queryTaxonD (dict): {qSeqId: taxId, ... }
+
+        Returns:
+            list:
+                  {
+                    "query": "drugbank_target|P54289",
+                    "target": "6JP5_3|1|1|1073|1073|9986",
+                    "taxId": 9986,
+                    "taxName": "Oryctolagus cuniculus",
+                    "sequenceIdentity": 97.7,
+                    "alignLen": 1063,
+                    "mismatch": 24,
+                    "gapOpen": 0,
+                    "queryStart": 9,
+                    "queryEnd": 1071,
+                    "targetStart": 11,
+                    "targetEnd": 1073,
+                    "eValue": 0.0,
+                    "rawScore": 6439.0,
+                    "bitScore": 2546.0,
+                    "queryLen": 1103,
+                    "targetLen": 1073,
+                    "queryAlign": "LTLTLFQSLLIGPSSEEPFPSAVTIKSWVDKM...",
+                    "targetAlign": "LTLWQAWLILIGPSSEEPFPSAVTIKSWVDKM...",ß
+                    "cigar": "1063M"
+                    },
+        """
+        if not self.__taxU:
+            self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
+        mD = {}
+        for sD in searchDictL:
+            if sD["mismatch"] > misMatchCutoff:
+                continue
+            if sD["sequenceIdentity"] < sequenceIdentityCutoff:
+                continue
+            taxId = sD["taxId"]
+            query = sD["query"]
+            qTaxId = -1
+            if useTaxonomy and queryTaxonD and query in queryTaxonD:
+                qTaxId = queryTaxonD[query]
+                qtL = self.__taxU.getLineage(qTaxId)
+                stL = self.__taxU.getLineage(taxId)
+                if not ((taxId in qtL) or (qTaxId in stL)):
+                    continue
+            #
+            # target = sD["target"]
+            mD.setdefault(query, []).append(sD)
+        #
+        logger.info("Query match count %d", len(mD))
+        return mD
