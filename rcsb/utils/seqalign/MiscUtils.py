@@ -56,13 +56,14 @@ class MiscUtils(object):
         ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping.dat.gz
 
         ~4300 seconds ~1.2 hrs to process a single pass. macbook pro
+
         """
         oD = {}
         try:
+            fileU = FileUtil()
             targetUrl = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping.dat.gz"
-            if not os.access(idMapPath):
+            if not fileU.exists(idMapPath):
                 outDirPath = os.path.join(self.__cachePath, "uniprot-idmapping")
-                fileU = FileUtil()
                 logger.info("Fetch idmapping data from %r in %r", targetUrl, outDirPath)
                 idPath = os.path.join(outDirPath, fileU.getFileName(targetUrl))
                 ok = fileU.get(targetUrl, idPath)
@@ -87,6 +88,79 @@ class MiscUtils(object):
                 #
         except Exception as e:
             logger.exception("Failing with %s", str(e))
+        return oD
+
+    def getUniprotXref(self, mapIndex, outDirPath, mapFileName, fmt="pickle", useCache=True):
+        """[summary]
+
+        Args:
+            mapIndex (int): index in the tab delimited mapping file (below)
+            outDirPath (str): directory path for raw and processed mapping files
+            mapFileName (str): file name for the target mapping file
+            fmt (str, optional): output format (pickle|json) . Defaults to "pickle".
+            useCache (bool, optional): use cached files. Defaults to True.
+
+        Returns:
+            dict: od[uniprotId] = mapped value
+
+
+                idmapping_selected.tab
+
+                1. UniProtKB-AC
+                2. UniProtKB-ID
+                3. GeneID (EntrezGene)
+                4. RefSeq
+                5. GI
+                6. PDB
+                7. GO
+                8. UniRef100
+                9. UniRef90
+                10. UniRef50
+                11. UniParc
+                12. PIR
+                13. NCBI-taxon
+                14. MIM
+                15. UniGene
+                16. PubMed
+                17. EMBL
+                18. EMBL-CDS
+                19. Ensembl
+                20. Ensembl_TRS
+                21. Ensembl_PRO
+                22. Additional PubMed
+
+        """
+
+        oD = {}
+        try:
+            idMapPath = os.path.join(outDirPath, mapFileName)
+            mU = MarshalUtil()
+            if useCache and mU.exists(idMapPath):
+                logger.info("Using cached file %r", idMapPath)
+                oD = mU.doImport(idMapPath, fmt=fmt)
+            else:
+                fileU = FileUtil()
+                targetUrl = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping_selected.tab.gz"
+                idPath = os.path.join(outDirPath, fileU.getFileName(targetUrl))
+                if not fileU.exists(idPath):
+                    logger.info("Fetch selected idmapping data from %r in %r", targetUrl, outDirPath)
+                    ok = fileU.get(targetUrl, idPath)
+                    if not ok:
+                        logger.error("Failed to downlowd %r", targetUrl)
+                        return oD
+                # ---
+                ioU = IoUtil()
+                iCount = 0
+                for row in ioU.deserializeCsvIter(idPath, delimiter="\t", rowFormat="list", encodingErrors="ignore"):
+                    oD[row[0]] = str(row[mapIndex - 1]).strip()
+                    iCount += 1
+                    if iCount % 50000000 == 0:
+                        logger.info("Processing %d", iCount)
+                    #
+                ok = mU.doExport(idMapPath, oD, fmt=fmt)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        #
         return oD
 
     def fetchNcbiTaxonomyDump(self, outDirPath):

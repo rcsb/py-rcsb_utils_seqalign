@@ -67,7 +67,7 @@ class MiscUtilsTests(unittest.TestCase):
         endTime = time.time()
         logger.debug("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def testExportProteinFasta(self):
+    def testExportPDBProteinFasta(self):
         """Test case -  export protein sequence FASTA file"""
         try:
             _, fn = os.path.split(self.__proteinSequenceDataPath)
@@ -80,11 +80,25 @@ class MiscUtilsTests(unittest.TestCase):
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    def testMakeFasta(self):
+    def testMakeAntibodyFasta(self):
         """Test case -  create SabDab Antibody data dump to FASTA"""
         try:
             mU = MiscUtils()
             mU.convertSabDabDumpToFasta(inpPath=self.__sabDabDumpPath, outPath=self.__sabDabFasta)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    @unittest.skipIf(skipFlag, "Very long test")
+    def testExportUniprotTaxonomyMapping(self):
+        """Test case -  export the full uniprot taxonomy mapping"""
+        try:
+            mU = MiscUtils()
+            outDirPath = os.path.join(self.__workPath, "uniprot_id_mapping_selected")
+            taxMapFileName = "uniprot_taxonomy.pic"
+            oD = mU.getUniprotXref(13, outDirPath, taxMapFileName, fmt="pickle", useCache=True)
+            self.assertGreater(len(oD), 100000)
+            #
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
@@ -126,7 +140,7 @@ class MiscUtilsTests(unittest.TestCase):
             self.fail()
 
     @unittest.skipIf(skipFlag, "Requires supporting database")
-    def testProteinSequenceDataExport(self):
+    def testPDBProteinSequenceDataExport(self):
         """Test case -  export protein sequence data"""
         try:
             _, fn = os.path.split(self.__unpRefSequenceDataPath)
@@ -153,8 +167,12 @@ class MiscUtilsTests(unittest.TestCase):
 def suiteMiscTools():
     suiteSelect = unittest.TestSuite()
     suiteSelect.addTest(MiscUtilsTests("testTaxonomyExport"))
-    suiteSelect.addTest(MiscUtilsTests("testMakeFasta"))
-    suiteSelect.addTest(MiscUtilsTests("testProteinSequenceDataExport"))
+    suiteSelect.addTest(MiscUtilsTests("testMakeAntibodyFasta"))
+    suiteSelect.addTest(MiscUtilsTests("testPDBProteinSequenceDataExport"))
+    suiteSelect.addTest(MiscUtilsTests("testReferenceSequenceDataExport"))
+    suiteSelect.addTest(MiscUtilsTests("testDrugBankTargetTaxonomy"))
+    suiteSelect.addTest(MiscUtilsTests("testExportUniprotTaxonomyMapping"))
+    suiteSelect.addTest(MiscUtilsTests("testExportPDBProteinFasta"))
     return suiteSelect
 
 
