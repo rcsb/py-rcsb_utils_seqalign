@@ -5,6 +5,7 @@
 # Version: 0.001
 #
 # Updates:
+#  6-Dec-2020 jdw Refactor tests with all target data
 ##
 """
 Test cases for MMSeqs2 sequence alignment utilities -
@@ -56,18 +57,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab"),
         ]
         # ---
-        self.__queryFastaPath = os.path.join(self.__dataPath, "sabdab-targets.fasta")
-        self.__sabDabFasta = os.path.join(self.__dataPath, "sabdab-targets.fasta")
-        self.__antibodySeqDbName = "sabdab"
-        #
-        #
-        self.__antibodyEasySearchResultPath = os.path.join(self.__workPath, "antibodyFesultEasySearch.txt")
-        self.__antibodySearchResultPath = os.path.join(self.__workPath, "antibodyResultSearch.txt")
-        self.__antibodyMapResultPath = os.path.join(self.__workPath, "antibodyResultMapSearch.json")
-        self.__antibodyHtmlMapResultPath = os.path.join(self.__workPath, "antibodyResultMapSearch.html")
-        #
-        self.__drugBankMapResultPath = os.path.join(self.__workPath, "drugBankResultMapSearch.json")
-        #
+
         self.__startTime = time.time()
         logger.debug("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
 
