@@ -105,7 +105,7 @@ class MMseqsUtils(object):
             exU = ExecUtils()
 
             ok = exU.run(self.__mmseqs2BinPath, execArgList=["createdb", fastaPath, dbPath], outPath=outPath, outAppend=True, timeOut=timeOut)
-            logger.info("status %r", ok)
+            logger.info("create db %r status %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -116,7 +116,7 @@ class MMseqsUtils(object):
         try:
             exU = ExecUtils()
             ok = exU.run(self.__mmseqs2BinPath, execArgList=["createindex", dbPath, tmpDir], outPath=outPath, outAppend=True, timeOut=timeOut)
-            logger.info("status %r", ok)
+            logger.info("Create index %r status %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -175,7 +175,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("status is %r", ok)
+            logger.info("create tax db %r status is %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -303,7 +303,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("status is %r", ok)
+            logger.info("Easy-search %r status is %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
