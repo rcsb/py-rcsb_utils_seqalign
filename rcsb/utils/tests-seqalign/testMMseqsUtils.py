@@ -51,7 +51,7 @@ class MMseqsUtilsTests(unittest.TestCase):
         self.__seqDataTupL = [
             (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd.gz"), "pdbpr", 0),
             (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
-            (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 950),
+            (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 500),
             (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl", 2000),
             (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos", 2100),
             (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 200),
@@ -170,7 +170,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             qTup = self.__seqDataTupL[0]
             for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "map-results-html", dbName + "-results.html")
-                ok = mmS.mapDatabaseFasta(fastaPath, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=0.55, timeOut=self.__timeOut, formatMode=3)
+                ok = mmS.mapDatabaseFasta(fastaPath, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, timeOut=self.__timeOut, formatMode=3)
                 self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
@@ -188,7 +188,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             for (_, taxonPath, dbName, minMatch) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "map-results-db", dbName + "-results.json")
                 mmS = MMseqsUtils(cachePath=self.__workPath)
-                ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=0.90, timeOut=self.__timeOut)
+                ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, timeOut=self.__timeOut)
                 self.assertTrue(ok)
                 mL = mmS.getMatchResults(resultPath, taxonPath)
                 logger.info("Search result for %r length %d", dbName, len(mL))
