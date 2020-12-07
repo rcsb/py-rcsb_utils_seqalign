@@ -54,7 +54,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 500),
             (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl", 2000),
             (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos", 2100),
-            (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 200),
+            (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 150),
         ]
         # ---
 
