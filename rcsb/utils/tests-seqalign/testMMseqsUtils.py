@@ -72,7 +72,7 @@ class MMseqsUtilsTests(unittest.TestCase):
         """Test case -  for PDB proteins, create sequence search database from fasta file"""
         try:
             mmS = MMseqsUtils(cachePath=self.__workPath)
-            for (fastaPath, taxonPath, dbName) in self.__seqDataTupL:
+            for (fastaPath, taxonPath, dbName, _) in self.__seqDataTupL:
                 ok = mmS.createSearchDatabase(fastaPath, self.__seqDbTopPath, dbName, timeOut=self.__timeOut)
                 self.assertTrue(ok)
                 if taxonPath:
