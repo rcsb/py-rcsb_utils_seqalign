@@ -85,6 +85,7 @@ class MMseqsUtils(object):
         ok = False
         try:
             timeOut = kwargs.get("timeOut", 3600)
+            verbose = kwargs.get("verbose", False)
             tmpDir = os.path.join(seqDbTopPath, "tmp")
             self.__mU.mkdir(seqDbTopPath)
             dbDir = os.path.join(seqDbTopPath, seqDbName)
@@ -93,6 +94,8 @@ class MMseqsUtils(object):
             dbLogPath = os.path.join(seqDbTopPath, seqDbName + ".log")
             ok1 = self.__createSearchDatabase(fastaPath, dbPath, dbLogPath, timeOut=timeOut)
             ok2 = self.__createSearchIndex(dbPath, tmpDir, dbLogPath, timeOut=timeOut)
+            if verbose:
+                logger.info("create db %r status %r", seqDbName, ok1 & ok2)
             ok = ok1 & ok2
         except Exception as e:
             logger.exception("Failing with %s", str(e))
@@ -103,9 +106,8 @@ class MMseqsUtils(object):
         ok = False
         try:
             exU = ExecUtils()
-
             ok = exU.run(self.__mmseqs2BinPath, execArgList=["createdb", fastaPath, dbPath], outPath=outPath, outAppend=True, timeOut=timeOut)
-            logger.info("create db %r status %r", dbPath, ok)
+            logger.debug("create db %r status %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -116,7 +118,7 @@ class MMseqsUtils(object):
         try:
             exU = ExecUtils()
             ok = exU.run(self.__mmseqs2BinPath, execArgList=["createindex", dbPath, tmpDir], outPath=outPath, outAppend=True, timeOut=timeOut)
-            logger.info("Create index %r status %r", dbPath, ok)
+            logger.debug("Create index %r status %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -274,7 +276,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("status is %r", ok)
+            logger.debug("status is %r", ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -303,7 +305,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("Easy-search %r status is %r", dbPath, ok)
+            logger.debug("Easy-search %r status is %r", dbPath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -413,7 +415,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("status is %r", ok)
+            logger.debug("status is %r", ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
@@ -451,9 +453,9 @@ class MMseqsUtils(object):
             )
             if fmtOut:
                 self.__parseAlignmentFile(tmpPath, resultPath, fmtOut)
-            logger.info("status is %r", ok)
+            logger.debug("status is %r", ok)
         except Exception as e:
-            logger.exception("Failing with %s", str(e))
+            logger.exception("Failing for resultPath %r with %s", resultPath, str(e))
         return ok
 
     def __parseAlignmentFile(self, inpFileName, outFileName, fmtOut="json"):
@@ -478,7 +480,7 @@ class MMseqsUtils(object):
                 hL = [self.__keyMap[nm][0] for nm in headerL]
                 ok = self.__mU.doExport(outFileName, rowDictL, fmt=fmtOut, fieldNames=hL)
             else:
-                ok = self.__mU.doExport(outFileName, rowDictL, fmt=fmtOut)
+                ok = self.__mU.doExport(outFileName, rowDictL, fmt=fmtOut, indent=3)
             #
         except Exception as e:
             logger.exception("Failing for %r (%r) with %s", inpFileName, fmtOut, str(e))
@@ -493,31 +495,37 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
+    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
-            searchResultPath ([type]): [description]
-            queryTaxonD ([type]): [description]
-            fmt (str, optional): [description]. Defaults to "json".
+            jsonSearchResultPath (str): input search results path (format=json)
+            queryTaxonomyMappingPath (str, optional): input taxon mapping file (format=tdd). Defaults to None.
+            useTaxonomy (bool, optional): filter results on matching taxonomy. Defaults to False.
+            misMatchCutoff (int, optional): filter output on residue mismatches. Defaults to -1. (not used)
+            sequenceIdentityCutoff (float, optional): minimum sequence identity. Defaults to 95.0.
+
         Returns:
             dict: dict of dictionaries containing match results
-
         """
+
         rL = self.__mU.doImport(jsonSearchResultPath, fmt="json")
         queryTaxonD = None
         if useTaxonomy and queryTaxonomyMappingPath:
             rowL = self.__mU.doImport(queryTaxonomyMappingPath, fmt="tdd", rowFormat="list")
-            queryTaxonD = {row[0]: row[1] for row in rowL}
+            queryTaxonD = {row[0]: int(row[1]) for row in rowL if isinstance(row[1], int)}
         mD = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff)
         return mD
 
-    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
+    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
             searchDictL (list): list of candidate match dictionaries
             queryTaxonD (dict): {qSeqId: taxId, ... }
+            useTaxonomy (bool, optional): filter results on matching taxonomy. Defaults to False.
+            misMatchCutoff (int, optional): filter output on residue mismatches. Defaults to -1. (not used)
+            sequenceIdentityCutoff (float, optional): minimum sequence identity. Defaults to 95.0.
 
         Returns:
             dict: {query:
@@ -547,16 +555,19 @@ class MMseqsUtils(object):
         if not self.__taxU:
             self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
         mD = {}
+        logger.debug("Starting search result with (%r) records", len(searchDictL))
         for sD in searchDictL:
-            if sD["mismatch"] > misMatchCutoff:
-                continue
             if sD["sequenceIdentity"] < sequenceIdentityCutoff:
+                continue
+            if misMatchCutoff >= 0 and sD["mismatch"] > misMatchCutoff:
                 continue
             taxId = sD["taxId"]
             query = sD["query"]
-            qTaxId = -1
+
             if useTaxonomy and queryTaxonD and query in queryTaxonD:
                 qTaxId = queryTaxonD[query]
+                if qTaxId is None or taxId is None:
+                    continue
                 qtL = self.__taxU.getLineage(qTaxId)
                 stL = self.__taxU.getLineage(taxId)
                 if not ((taxId in qtL) or (qTaxId in stL)):

@@ -39,6 +39,8 @@ class MMseqsUtilsTests(unittest.TestCase):
     Test cases for MMSeqs2 sequence alignment utilities -
     """
 
+    skipFull = True
+
     def setUp(self):
         self.__workPath = os.path.join(HERE, "test-output", "CACHE")
         self.__dataPath = os.path.join(HERE, "test-data")
@@ -46,16 +48,22 @@ class MMseqsUtilsTests(unittest.TestCase):
         #
         self.__seqDbTopPath = os.path.join(self.__workPath, "db")
         self.__timeOut = 3600
-        self.__identityCutoff = 0.99
+        self.__identityCutoff = 0.90
         #
-        self.__seqDataTupL = [
-            (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd.gz"), "pdbpr", 0),
-            (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
-            (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 500),
-            (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl", 2000),
-            (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos", 2100),
-            (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 150),
-        ]
+        if MMseqsUtilsTests.skipFull:
+            self.__seqDataTupL = [
+                (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd"), "pdbpr", 0),
+                (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
+            ]
+        else:
+            self.__seqDataTupL = [
+                (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd"), "pdbpr", 0),
+                (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
+                (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 500),
+                (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl", 2000),
+                (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos", 2100),
+                (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 150),
+            ]
         # ---
 
         self.__startTime = time.time()
@@ -73,7 +81,7 @@ class MMseqsUtilsTests(unittest.TestCase):
         try:
             mmS = MMseqsUtils(cachePath=self.__workPath)
             for (fastaPath, taxonPath, dbName, _) in self.__seqDataTupL:
-                ok = mmS.createSearchDatabase(fastaPath, self.__seqDbTopPath, dbName, timeOut=self.__timeOut)
+                ok = mmS.createSearchDatabase(fastaPath, self.__seqDbTopPath, dbName, timeOut=self.__timeOut, verbose=True)
                 self.assertTrue(ok)
                 if taxonPath:
                     ok = mmS.createTaxonomySearchDatabase(taxonPath, self.__seqDbTopPath, dbName, timeOut=self.__timeOut)
@@ -117,7 +125,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
             for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
-                resultPath = os.path.join(self.__workPath, "search-results", dbName + "-results.txt")
+                resultPath = os.path.join(self.__workPath, "search-results", dbName + "-results.json")
                 ok = mmS.searchDatabase(
                     fastaPath,
                     self.__seqDbTopPath,
@@ -151,8 +159,8 @@ class MMseqsUtilsTests(unittest.TestCase):
                     timeOut=self.__timeOut,
                 )
                 self.assertTrue(ok)
-                mL = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=self.__identityCutoff)
-                logger.info("Search result for %r length %d", dbName, len(mL))
+                mL = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=self.__identityCutoff)
+                logger.info("Search result %r (%d)", dbName, len(mL))
                 self.assertGreaterEqual(len(mL), minMatch)
                 #
         except Exception as e:
@@ -190,8 +198,13 @@ class MMseqsUtilsTests(unittest.TestCase):
                 mmS = MMseqsUtils(cachePath=self.__workPath)
                 ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, timeOut=self.__timeOut)
                 self.assertTrue(ok)
-                mL = mmS.getMatchResults(resultPath, taxonPath)
-                logger.info("Search result for %r length %d", dbName, len(mL))
+                #
+                if taxonPath:
+                    mL = mmS.getMatchResults(resultPath, taxonPath, useTaxonomy=True, misMatchCutoff=-1, sequenceIdentityCutoff=self.__identityCutoff)
+                else:
+                    mL = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=self.__identityCutoff)
+
+                logger.info("Search result %r (%d)", dbName, len(mL))
                 self.assertGreaterEqual(len(mL), minMatch)
         except Exception as e:
             logger.exception("Failing with %s", str(e))

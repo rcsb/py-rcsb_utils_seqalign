@@ -4,3 +4,4 @@
   28-Oct-2020  - V0.12 Add result parser
    7-Nov-2020  - V0.13 Add methods to evaluate search results
   11-Nov-2020  - V0.14 Add full UniProt xref export method.
+   7-Dec-2020  - V0.15 Refactor module, migrate MiscUtils methods to other modules, remove mock-data submodule
