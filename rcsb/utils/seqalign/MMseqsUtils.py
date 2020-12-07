@@ -494,14 +494,14 @@ class MMseqsUtils(object):
         return ok
 
     def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
-        """[summary]
+        """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
             searchResultPath ([type]): [description]
             queryTaxonD ([type]): [description]
             fmt (str, optional): [description]. Defaults to "json".
         Returns:
-            list: list of dictionaries containing match results
+            dict: dict of dictionaries containing match results
 
         """
         rL = self.__mU.doImport(jsonSearchResultPath, fmt="json")
@@ -509,18 +509,18 @@ class MMseqsUtils(object):
         if useTaxonomy and queryTaxonomyMappingPath:
             rowL = self.__mU.doImport(queryTaxonomyMappingPath, fmt="tdd", rowFormat="list")
             queryTaxonD = {row[0]: row[1] for row in rowL}
-        mL = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff)
-        return mL
+        mD = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff)
+        return mD
 
     def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0):
-        """Get matches ...
+        """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
             searchDictL (list): list of candidate match dictionaries
             queryTaxonD (dict): {qSeqId: taxId, ... }
 
         Returns:
-            list:
+            dict: {query:
                   {
                     "query": "drugbank_target|P54289",
                     "target": "6JP5_3|1|1|1073|1073|9986",
@@ -542,7 +542,7 @@ class MMseqsUtils(object):
                     "queryAlign": "LTLTLFQSLLIGPSSEEPFPSAVTIKSWVDKM...",
                     "targetAlign": "LTLWQAWLILIGPSSEEPFPSAVTIKSWVDKM...",ß
                     "cigar": "1063M"
-                    },
+                    },..}
         """
         if not self.__taxU:
             self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
@@ -562,8 +562,7 @@ class MMseqsUtils(object):
                 if not ((taxId in qtL) or (qTaxId in stL)):
                     continue
             #
-            # target = sD["target"]
             mD.setdefault(query, []).append(sD)
         #
-        logger.info("Query match count %d", len(mD))
+        logger.debug("Query match count %d", len(mD))
         return mD

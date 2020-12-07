@@ -49,12 +49,12 @@ class MMseqsUtilsTests(unittest.TestCase):
         self.__identityCutoff = 0.99
         #
         self.__seqDataTupL = [
-            (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd.gz"), "pdbpr"),
-            (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank"),
-            (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card"),
-            (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl"),
-            (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos"),
-            (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab"),
+            (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd.gz"), "pdbpr", 0),
+            (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
+            (os.path.join(self.__dataPath, "card-targets.fa"), os.path.join(self.__dataPath, "card-targets-taxon.tdd"), "card", 950),
+            (os.path.join(self.__dataPath, "chembl-targets.fa"), os.path.join(self.__dataPath, "chembl-targets-taxon.tdd"), "chembl", 2000),
+            (os.path.join(self.__dataPath, "pharos-targets.fa"), os.path.join(self.__dataPath, "pharos-targets-taxon.tdd"), "pharos", 2100),
+            (os.path.join(self.__dataPath, "sabdab-targets.fa"), None, "sabdab", 200),
         ]
         # ---
 
@@ -92,7 +92,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             #
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
-            for (fastaPath, _, dbName) in self.__seqDataTupL[1:]:
+            for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "easy-search-results", dbName + "-results.txt")
                 ok = mmS.easySearchDatabase(
                     fastaPath,
@@ -116,7 +116,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             #
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
-            for (fastaPath, _, dbName) in self.__seqDataTupL[1:]:
+            for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "search-results", dbName + "-results.txt")
                 ok = mmS.searchDatabase(
                     fastaPath,
@@ -140,8 +140,8 @@ class MMseqsUtilsTests(unittest.TestCase):
             #
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
-            for (fastaPath, _, dbName) in self.__seqDataTupL[1:]:
-                resultPath = os.path.join(self.__workPath, "map-results", dbName + "-results.txt")
+            for (fastaPath, _, dbName, minMatch) in self.__seqDataTupL[1:]:
+                resultPath = os.path.join(self.__workPath, "map-results", dbName + "-results.json")
                 ok = mmS.mapDatabaseFasta(
                     fastaPath,
                     self.__seqDbTopPath,
@@ -151,8 +151,9 @@ class MMseqsUtilsTests(unittest.TestCase):
                     timeOut=self.__timeOut,
                 )
                 self.assertTrue(ok)
-                mL = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=95.0)
-                self.assertGreaterEqual(len(mL), 400)
+                mL = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=10, sequenceIdentityCutoff=self.__identityCutoff)
+                logger.info("Search result for %r length %d", dbName, len(mL))
+                self.assertGreaterEqual(len(mL), minMatch)
                 #
         except Exception as e:
             logger.exception("Failing with %s", str(e))
@@ -167,8 +168,8 @@ class MMseqsUtilsTests(unittest.TestCase):
             #
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
-            for (fastaPath, _, dbName) in self.__seqDataTupL[1:]:
-                resultPath = os.path.join(self.__workPath, "map-results-html", dbName + "-results.txt")
+            for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
+                resultPath = os.path.join(self.__workPath, "map-results-html", dbName + "-results.html")
                 ok = mmS.mapDatabaseFasta(fastaPath, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=0.55, timeOut=self.__timeOut, formatMode=3)
                 self.assertTrue(ok)
         except Exception as e:
@@ -184,13 +185,14 @@ class MMseqsUtilsTests(unittest.TestCase):
             #
             mmS = MMseqsUtils(cachePath=self.__workPath)
             qTup = self.__seqDataTupL[0]
-            for (_, taxonPath, dbName) in self.__seqDataTupL[1:]:
-                resultPath = os.path.join(self.__workPath, "map-results-db", dbName + "-results.txt")
+            for (_, taxonPath, dbName, minMatch) in self.__seqDataTupL[1:]:
+                resultPath = os.path.join(self.__workPath, "map-results-db", dbName + "-results.json")
                 mmS = MMseqsUtils(cachePath=self.__workPath)
                 ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=0.90, timeOut=self.__timeOut)
                 self.assertTrue(ok)
                 mL = mmS.getMatchResults(resultPath, taxonPath)
-                self.assertGreaterEqual(len(mL), 600)
+                logger.info("Search result for %r length %d", dbName, len(mL))
+                self.assertGreaterEqual(len(mL), minMatch)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
