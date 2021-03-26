@@ -48,12 +48,12 @@ class MMseqsUtils(object):
         self.__keyMap = {
             "query": ("query", "str"),
             "target": ("target", "str"),
-            "taxid": ("taxId", "int"),
-            "taxname": ("taxName", "str"),
+            "taxid": ("targetTaxId", "int"),
+            "taxname": ("targetTaxName", "str"),
             "pident": ("sequenceIdentity", "float"),
             "alnlen": ("alignLen", "int"),
-            "mismatch": ("mismatch", "int"),
-            "gapopen": ("gapOpen", "int"),
+            "mismatch": ("mismatchCound", "int"),
+            "gapopen": ("gapOpenCount", "int"),
             "qstart": ("queryStart", "int"),
             "qend": ("queryEnd", "int"),
             "tstart": ("targetStart", "int"),
@@ -193,7 +193,7 @@ class MMseqsUtils(object):
             minSeqId (float): minimun sequence identity
             timeOut (int, optional): time out for the process excecution. Defaults to 100 secs.
             sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
-            eValCutoff  (int, optional): e-Value cuttof (default= 100)
+            eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -225,7 +225,7 @@ class MMseqsUtils(object):
             minSeqId (float): minimun sequence identity
             timeOut (int, optional): time out for the process excecution. Defaults to 100 secs.
             sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
-            eValCutoff  (int, optional): e-Value cuttof (default= 100)
+            eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -532,12 +532,12 @@ class MMseqsUtils(object):
                   {
                     "query": "drugbank_target|P54289",
                     "target": "6JP5_3|1|1|1073|1073|9986",
-                    "taxId": 9986,
-                    "taxName": "Oryctolagus cuniculus",
+                    "targetTaxId": 9986,
+                    "targetTaxName": "Oryctolagus cuniculus",
                     "sequenceIdentity": 97.7,
                     "alignLen": 1063,
-                    "mismatch": 24,
-                    "gapOpen": 0,
+                    "mismatchCount": 24,
+                    "gapOpenCount": 0,
                     "queryStart": 9,
                     "queryEnd": 1071,
                     "targetStart": 11,
