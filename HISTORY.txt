@@ -6,3 +6,4 @@
   11-Nov-2020  - V0.14 Add full UniProt xref export method.
    7-Dec-2020  - V0.15 Refactor module, migrate MiscUtils methods to other modules, remove mock-data submodule
   26-Mar-2020  - V0.16 Adjust fields and field names in alignment output object
+  28-Mar-2020  - V0.17 Further extensions in fields in alignment output object

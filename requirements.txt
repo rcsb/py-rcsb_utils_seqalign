@@ -1,4 +1,2 @@
---extra-index-url https://pypi.anaconda.org/OpenEye/simple
-rcsb.utils.io >= 0.79
-rcsb.utils.config >= 0.35
-rcsb.exdb >= 0.66
+rcsb.utils.io >= 1.00
+rcsb.utils.taxonomy >= 0.36

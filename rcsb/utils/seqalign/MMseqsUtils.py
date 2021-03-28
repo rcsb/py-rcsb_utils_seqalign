@@ -52,7 +52,7 @@ class MMseqsUtils(object):
             "taxname": ("targetTaxName", "str"),
             "pident": ("sequenceIdentity", "float"),
             "alnlen": ("alignLen", "int"),
-            "mismatch": ("mismatchCound", "int"),
+            "mismatch": ("mismatchCount", "int"),
             "gapopen": ("gapOpenCount", "int"),
             "qstart": ("queryStart", "int"),
             "qend": ("queryEnd", "int"),
@@ -561,17 +561,28 @@ class MMseqsUtils(object):
                 continue
             if misMatchCutoff >= 0 and sD["mismatch"] > misMatchCutoff:
                 continue
-            taxId = sD["taxId"]
+            #
+            targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
             query = sD["query"]
+            #
+            if useTaxonomy:
+                queryTaxId = int(queryTaxonD[query]) if queryTaxonD and query in queryTaxonD else None
+                if not queryTaxId:
+                    # Try extracting the query taxId from the query identifier
+                    qL = query.split("|")
+                    qD = {ky: val for val, ky in zip(qL, qL[1:])}
+                    queryTaxId = int(qD["taxId"]) if "taxId" in qD else None
+                    if targetTaxId and queryTaxId:
+                        status, lcaTaxId, rank = self.__taxU.compareTaxons(queryTaxId, targetTaxId)
+                        sD["taxonomyMatchStatus"] = status
+                        sD["lcaTaxId"] = lcaTaxId
+                        sD["lcaTaxName"] = self.__taxU.getScientificName(lcaTaxId)
+                        sD["lcaRank"] = rank
+                        sD["queryTaxId"] = queryTaxId
+                        sD["queryRank"] = self.__taxU.getRank(queryTaxId)
+                        sD["queryTaxName"] = self.__taxU.getScientificName(queryTaxId)
+                        sD["targetRank"] = self.__taxU.getRank(targetTaxId)
 
-            if useTaxonomy and queryTaxonD and query in queryTaxonD:
-                qTaxId = queryTaxonD[query]
-                if qTaxId is None or taxId is None:
-                    continue
-                qtL = self.__taxU.getLineage(qTaxId)
-                stL = self.__taxU.getLineage(taxId)
-                if not ((taxId in qtL) or (qTaxId in stL)):
-                    continue
             #
             mD.setdefault(query, []).append(sD)
         #
