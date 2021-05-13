@@ -78,7 +78,7 @@ class MMseqsUtils(object):
             fastaPath (str): input FASTA file path
             seqDbTopPath (str):  top path to search sequence database directories
             seqDbName (str): name of the sequence search database
-            timeOut (int, optional): time out for the process excecution. Defaults to 3600 secs.
+            timeOut (int, optional): time out for the process execution. Defaults to 3600 secs.
         Returns:
             (bool): True for success or False otherwise
         """
@@ -191,8 +191,8 @@ class MMseqsUtils(object):
             seqDbName (str): name of the sequence search database
             resultPath (str): search results path
             minSeqId (float): minimun sequence identity
-            timeOut (int, optional): time out for the process excecution. Defaults to 100 secs.
-            sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
+            timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
+            sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
             eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
@@ -214,7 +214,7 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def searchDatabase(self, fastaPath, seqDbTopPath, seqDbName, resultPath, **kwargs):
+    def searchDatabaseFasta(self, fastaPath, seqDbTopPath, seqDbName, resultPath, **kwargs):
         """Search sequence database with the input FASTA file
 
         Args:
@@ -223,8 +223,8 @@ class MMseqsUtils(object):
             seqDbName (str): name of the sequence search database
             resultPath (str): search results path
             minSeqId (float): minimun sequence identity
-            timeOut (int, optional): time out for the process excecution. Defaults to 100 secs.
-            sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
+            timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
+            sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
             eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
@@ -259,21 +259,83 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
+    def searchDatabase(self, queryDbName, seqDbTopPath, seqDbName, resultPath, **kwargs):
+        """Search sequences from input query database with sequence in the target search database.
+
+        Args:
+            queryDbName (str): name of the query sequence database
+            seqDbTopPath (str):  top path to search sequence database directories
+            seqDbName (str): name of the sequence search database
+            resultPath (str): search results path
+            minSeqId (float): minimun sequence identity
+            timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
+            sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
+            eValCutoff  (int, optional): e-Value cuttoff (default= 100)
+            formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
+            formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
+
+        Returns:
+            (bool): True for success or False otherwise
+        """
+        ok = False
+        try:
+            tmpDir = os.path.join(seqDbTopPath, "tmp")
+            self.__mU.mkdir(tmpDir)
+            resultDirPath = os.path.join(seqDbTopPath, "results")
+            self.__mU.mkdir(resultDirPath)
+            #
+            # resultDbPath = os.path.join(resultDirPath, queryDbName)
+            qId = "query-" + str(uuid.uuid1())
+            resultDbPath = os.path.join(resultDirPath, qId)
+            targetDbPath = os.path.join(seqDbTopPath, seqDbName, seqDbName)
+            queryDbPath = os.path.join(seqDbTopPath, queryDbName, queryDbName)
+
+            targetDbPath = os.path.join(seqDbTopPath, seqDbName, seqDbName)
+            dbLogPath = os.path.join(seqDbTopPath, seqDbName + ".log")
+            ok1 = self.__searchDatabase(queryDbPath, targetDbPath, resultDbPath, tmpDir, dbLogPath, **kwargs)
+            if not ok1:
+                logger.info("search %s with %s returning %r", queryDbName, seqDbName, ok1)
+            ok2 = self.__formatSearchResults(queryDbPath, targetDbPath, resultDbPath, resultPath, dbLogPath, **kwargs)
+            ok = ok1 & ok2
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        return ok
+
     def __searchDatabase(self, queryDbPath, targetDbPath, resultDbPath, tmpDir, outPath, **kwargs):
         """Search database for the input FASTA file"""
         ok = False
         try:
             minSeqId = kwargs.get("minSeqId", 0.95)
             timeOut = kwargs.get("timeOut", 100)
-            sensitivity = kwargs.get("sensitivity", 1)
+            sensitivity = kwargs.get("sensitivity", 1.0)
             eValCutoff = kwargs.get("eValCutoff", 100)
+            appendMode = kwargs.get("appendMode", False)
 
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
-                execArgList=["search", queryDbPath, targetDbPath, resultDbPath, tmpDir, "--min-seq-id", str(minSeqId), "-a", "true", "-e", str(eValCutoff), "-s", str(sensitivity)],
+                # execArgList=["search", queryDbPath, targetDbPath, resultDbPath, tmpDir, "--min-seq-id", str(minSeqId), "-a", "true", "-e", str(eValCutoff), "-s", str(sensitivity)],
+                execArgList=[
+                    "search",
+                    queryDbPath,
+                    targetDbPath,
+                    resultDbPath,
+                    tmpDir,
+                    "--min-seq-id",
+                    str(minSeqId),
+                    "-a",
+                    "true",
+                    "-e",
+                    str(eValCutoff),
+                    "-s",
+                    str(sensitivity),
+                    # "--cov-mode",
+                    # "1",
+                    # "-c",
+                    # "0.70",
+                ],
                 outPath=outPath,
-                outAppend=True,
+                outAppend=appendMode,
                 timeOut=timeOut,
             )
             logger.debug("status is %r", ok)
@@ -319,9 +381,9 @@ class MMseqsUtils(object):
             seqDbName (str): name of the sequence search database
             resultPath (str): search results path
             minSeqId (float, optional): minimun sequence identity (default=0.95)
-            timeOut (int, optional): time out for the process excecution. Defaults to 3600 secs.
-            sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
-            eValCutoff  (int, optional): e-Value cuttof (default= 100)
+            timeOut (int, optional): time out for the process execution. Defaults to 3600 secs.
+            sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
+            eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -364,9 +426,9 @@ class MMseqsUtils(object):
             seqDbName (str): name of the sequence search database
             resultPath (str): search results path
             minSeqId (float, optional): minimun sequence identity (default=0.95)
-            timeOut (int, optional): time out for the process excecution. Defaults to 3600 secs.
-            sensitivity (float, optional): sentivity for prefilter search (1-8) (default = 1)
-            eValCutoff  (int, optional): e-Value cuttof (default= 100)
+            timeOut (int, optional): time out for the process execution. Defaults to 3600 secs.
+            sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
+            eValCutoff  (int, optional): e-Value cuttoff (default= 100)
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -451,9 +513,10 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
+            logger.info("convertalis status is %r", ok)
             if fmtOut:
                 self.__parseAlignmentFile(tmpPath, resultPath, fmtOut)
-            logger.debug("status is %r", ok)
+
         except Exception as e:
             logger.exception("Failing for resultPath %r with %s", resultPath, str(e))
         return ok

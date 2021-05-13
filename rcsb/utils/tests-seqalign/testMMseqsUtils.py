@@ -126,7 +126,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             qTup = self.__seqDataTupL[0]
             for (fastaPath, _, dbName, _) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "search-results", dbName + "-results.json")
-                ok = mmS.searchDatabase(
+                ok = mmS.searchDatabaseFasta(
                     fastaPath,
                     self.__seqDbTopPath,
                     qTup[2],
