@@ -361,8 +361,7 @@ class MMseqsUtils(object):
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
-                execArgList=["easy-search", fastaPath, dbPath, resultPath, tmpDir, "--min-seq-id", str(minSeqId), "-s", str(sensitivity), "-a", "true", "-e", str(eValCutoff)]
-                + fOptL,
+                execArgList=["easy-search", fastaPath, dbPath, resultPath, tmpDir, "--min-seq-id", str(minSeqId), "-s", str(sensitivity), "-a", "true", "-e", str(eValCutoff)] + fOptL,
                 outPath=outPath,
                 outAppend=True,
                 timeOut=timeOut,
@@ -513,7 +512,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.info("convertalis status is %r", ok)
+            logger.debug("convertalis status is %r", ok)
             if fmtOut:
                 self.__parseAlignmentFile(tmpPath, resultPath, fmtOut)
 
@@ -558,7 +557,7 @@ class MMseqsUtils(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0):
+    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0, useBitScore=False):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
@@ -567,9 +566,10 @@ class MMseqsUtils(object):
             useTaxonomy (bool, optional): filter results on matching taxonomy. Defaults to False.
             misMatchCutoff (int, optional): filter output on residue mismatches. Defaults to -1. (not used)
             sequenceIdentityCutoff (float, optional): minimum sequence identity. Defaults to 95.0.
+            useBitScore (bool, optional): filter results comparing bit scores in the query comment. Defaults to False.
 
         Returns:
-            dict: dict of dictionaries containing match results
+            dict: dictionary of lists of dictionaries containing match results
         """
 
         rL = self.__mU.doImport(jsonSearchResultPath, fmt="json")
@@ -577,10 +577,10 @@ class MMseqsUtils(object):
         if useTaxonomy and queryTaxonomyMappingPath:
             rowL = self.__mU.doImport(queryTaxonomyMappingPath, fmt="tdd", rowFormat="list")
             queryTaxonD = {row[0]: int(row[1]) for row in rowL if isinstance(row[1], int)}
-        mD = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff)
+        mD = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff, useBitScore=useBitScore)
         return mD
 
-    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0):
+    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0, useBitScore=False):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
@@ -589,9 +589,10 @@ class MMseqsUtils(object):
             useTaxonomy (bool, optional): filter results on matching taxonomy. Defaults to False.
             misMatchCutoff (int, optional): filter output on residue mismatches. Defaults to -1. (not used)
             sequenceIdentityCutoff (float, optional): minimum sequence identity. Defaults to 95.0.
+            useBitScore (bool, optional): filter results comparing bit scores in the query comment. Defaults to False.
 
         Returns:
-            dict: {query:
+            dict: {query: [
                   {
                     "query": "drugbank_target|P54289",
                     "target": "6JP5_3|1|1|1073|1073|9986",
@@ -613,7 +614,8 @@ class MMseqsUtils(object):
                     "queryAlign": "LTLTLFQSLLIGPSSEEPFPSAVTIKSWVDKM...",
                     "targetAlign": "LTLWQAWLILIGPSSEEPFPSAVTIKSWVDKM...",ß
                     "cigar": "1063M"
-                    },..}
+                    },..,],...
+                    }
         """
         if not self.__taxU:
             self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
@@ -624,9 +626,16 @@ class MMseqsUtils(object):
                 continue
             if misMatchCutoff >= 0 and sD["mismatch"] > misMatchCutoff:
                 continue
-            #
-            targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
+            # --
             query = sD["query"]
+            if useBitScore:
+                qL = query.split("|")
+                bs = float(qL[qL.index("bitScore") - 1]) if "bitScore" in qL else None
+                if "bitScore" in sD and bs and float(sD["bitScore"]) < bs:
+                    # logger.debug("skipping %r < %r %r", sD["bitScore"], bs, query)
+                    continue
+            # --
+            targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
             #
             if useTaxonomy:
                 queryTaxId = int(queryTaxonD[query]) if queryTaxonD and query in queryTaxonD else None

@@ -8,3 +8,4 @@
   26-Mar-2021  - V0.16 Adjust fields and field names in alignment output object
   28-Mar-2021  - V0.17 Further extensions in fields in alignment output object
   13-May-2021  - V0.18 Add searchDatabaseFasta() and make searchDatabase() consistent with mapDatabase()
+  12-Jun-2021  - V0.19 Add bit score filtering in __getMatchResults()
