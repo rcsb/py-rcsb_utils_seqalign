@@ -84,6 +84,7 @@ class MMseqsUtils(object):
         """
         ok = False
         try:
+            logger.info("Creating sequence search database for %r", seqDbName)
             timeOut = kwargs.get("timeOut", 3600)
             verbose = kwargs.get("verbose", False)
             tmpDir = os.path.join(seqDbTopPath, "tmp")
@@ -137,6 +138,7 @@ class MMseqsUtils(object):
         """
         ok = False
         try:
+            logger.info("Creating sequence search database for with taxonomy enabled for %r", seqDbName)
             tmpDir = os.path.join(seqDbTopPath, "tmp")
             self.__mU.mkdir(tmpDir)
             dbDir = os.path.join(seqDbTopPath, seqDbName)
@@ -466,8 +468,6 @@ class MMseqsUtils(object):
             sensitivity = kwargs.get("sensitivity", 1)
             eValCutoff = kwargs.get("eValCutoff", 100)
             #
-
-            #
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
@@ -487,6 +487,7 @@ class MMseqsUtils(object):
         try:
             formatMode = kwargs.get("formatMode", None)
             formatOutput = kwargs.get("formatOutput", self.__reportColsDefault)
+            formatOutput = formatOutput if formatOutput else self.__reportColsDefault
             self.__reportCols = formatOutput
             timeOut = kwargs.get("timeOut", 3600)
             if formatMode:
@@ -512,7 +513,7 @@ class MMseqsUtils(object):
                 outAppend=True,
                 timeOut=timeOut,
             )
-            logger.debug("convertalis status is %r", ok)
+            logger.info("convertalis status is %r", ok)
             if fmtOut:
                 self.__parseAlignmentFile(tmpPath, resultPath, fmtOut)
 
@@ -617,10 +618,11 @@ class MMseqsUtils(object):
                     },..,],...
                     }
         """
-        if not self.__taxU:
+        if useTaxonomy and not self.__taxU:
+            logger.info("useTaxonomy flag (%r)", useTaxonomy)
             self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
         mD = {}
-        logger.debug("Starting search result with (%r) records", len(searchDictL))
+        logger.info("Starting search result with (%r) records", len(searchDictL))
         for sD in searchDictL:
             if sD["sequenceIdentity"] < sequenceIdentityCutoff:
                 continue
@@ -635,9 +637,8 @@ class MMseqsUtils(object):
                     # logger.debug("skipping %r < %r %r", sD["bitScore"], bs, query)
                     continue
             # --
-            targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
-            #
             if useTaxonomy:
+                targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
                 queryTaxId = int(queryTaxonD[query]) if queryTaxonD and query in queryTaxonD else None
                 if not queryTaxId:
                     # Try extracting the query taxId from the query identifier
@@ -658,5 +659,5 @@ class MMseqsUtils(object):
             #
             mD.setdefault(query, []).append(sD)
         #
-        logger.debug("Query match count %d", len(mD))
+        logger.info("Query match count %d", len(mD))
         return mD
