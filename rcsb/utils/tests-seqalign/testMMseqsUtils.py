@@ -49,11 +49,13 @@ class MMseqsUtilsTests(unittest.TestCase):
         self.__seqDbTopPath = os.path.join(self.__workPath, "db")
         self.__timeOut = 3600
         self.__identityCutoff = 0.90
+        self.__sensitivity = 1.0
         #
         if MMseqsUtilsTests.skipFull:
             self.__seqDataTupL = [
                 (os.path.join(self.__dataPath, "pdb-protein-entity.fa.gz"), os.path.join(self.__dataPath, "pdb-protein-entity-taxon.tdd"), "pdbpr", 0),
                 (os.path.join(self.__dataPath, "drugbank-targets.fa"), os.path.join(self.__dataPath, "drugbank-targets-taxon.tdd"), "drugbank", 2000),
+                # (os.path.join(self.__dataPath, "imgt-reference.fa"), os.path.join(self.__dataPath, "imgt-reference-taxon.tdd"), "imgt", 200),
             ]
         else:
             self.__seqDataTupL = [
@@ -92,7 +94,7 @@ class MMseqsUtilsTests(unittest.TestCase):
 
     #
     def testEasySearch(self):
-        """Test case -  easy search workflow - all vs PDB """
+        """Test case -  easy search workflow - all vs PDB"""
         try:
             resultDirPath = os.path.join(self.__workPath, "easy-search-results")
             mU = MarshalUtil()
@@ -196,7 +198,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             for (_, taxonPath, dbName, minMatch) in self.__seqDataTupL[1:]:
                 resultPath = os.path.join(self.__workPath, "map-results-db", dbName + "-results.json")
                 mmS = MMseqsUtils(cachePath=self.__workPath)
-                ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, timeOut=self.__timeOut)
+                ok = mmS.mapDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, sensitivity=self.__sensitivity, timeOut=self.__timeOut)
                 self.assertTrue(ok)
                 #
                 if taxonPath:
@@ -206,6 +208,35 @@ class MMseqsUtilsTests(unittest.TestCase):
 
                 logger.info("Search result %r (%d)", dbName, len(mL))
                 self.assertGreaterEqual(len(mL), minMatch)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    def testSearchDatabaseDatabase(self):
+        """Test case -  map similar sequences (database) workflow  - all vs PDB"""
+        try:
+            resultDirPath = os.path.join(self.__workPath, "search-results-db")
+            mU = MarshalUtil()
+            mU.mkdir(resultDirPath)
+            #
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            qTup = self.__seqDataTupL[0]
+            for (_, taxonPath, dbName, minMatch) in self.__seqDataTupL[1:]:
+                resultPath = os.path.join(self.__workPath, "search-results-db", dbName + "-results.json")
+                mmS = MMseqsUtils(cachePath=self.__workPath)
+                ok = mmS.searchDatabase(dbName, self.__seqDbTopPath, qTup[2], resultPath, minSeqId=self.__identityCutoff, sensitivity=self.__sensitivity, timeOut=self.__timeOut)
+                self.assertTrue(ok)
+                #
+                if taxonPath:
+                    mD = mmS.getMatchResults(resultPath, taxonPath, useTaxonomy=True, misMatchCutoff=-1, sequenceIdentityCutoff=self.__identityCutoff)
+                else:
+                    mD = mmS.getMatchResults(resultPath, None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=self.__identityCutoff)
+
+                logger.info("Search result %r (%d)", dbName, len(mD))
+                self.assertGreaterEqual(len(mD), minMatch)
+                resultPath = os.path.join(self.__workPath, "search-results-db", dbName + "-filtered-results.json")
+                ok = mU.doExport(resultPath, mD, fmt="json", indent=3)
+                self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
