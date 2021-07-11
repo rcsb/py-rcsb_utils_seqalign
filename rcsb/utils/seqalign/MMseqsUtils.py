@@ -640,7 +640,7 @@ class MMseqsUtils(object):
             # --
             alR = []
             if "cigar" in sD and "queryStart" in sD and "targetStart" in sD:
-                alR = self.getAlignedRegions(sD["cigarString"], sD["queryStart"], sD["targetStart"])
+                alR = self.getAlignedRegions(sD["cigar"], sD["queryStart"], sD["targetStart"])
             sD["alignedRegions"] = alR
             # --
             if useTaxonomy:
