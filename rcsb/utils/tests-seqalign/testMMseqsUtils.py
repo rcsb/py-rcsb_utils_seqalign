@@ -48,7 +48,7 @@ class MMseqsUtilsTests(unittest.TestCase):
         #
         self.__seqDbTopPath = os.path.join(self.__workPath, "db")
         self.__timeOut = 3600
-        self.__identityCutoff = 0.90
+        self.__identityCutoff = 0.80
         self.__sensitivity = 1.0
         #
         if MMseqsUtilsTests.skipFull:
@@ -240,6 +240,21 @@ class MMseqsUtilsTests(unittest.TestCase):
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
+
+    def testAlignedRegions(self):
+        """Test case:  reconstruct aligned regions from cigar string."""
+        sD = {
+            "queryStart": 1,
+            "queryEnd": 842,
+            "targetStart": 1,
+            "targetEnd": 825,
+            "cigar": "8M4I19M1I354M4I2M2D194M10I246M",
+        }
+        mmS = MMseqsUtils(cachePath=self.__workPath)
+        alR = mmS.getAlignedRegions(sD["cigar"], sD["queryStart"], sD["targetStart"])
+        self.assertEqual(alR[-1]["queryEnd"], sD["queryEnd"])
+        self.assertEqual(alR[-1]["targetEnd"], sD["targetEnd"])
+        logger.debug("align regions %r", alR)
 
 
 def suiteCreateDatabases():

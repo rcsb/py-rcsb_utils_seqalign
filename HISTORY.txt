@@ -12,3 +12,4 @@
   12-Jun-2021  - V0.20 Updating installation scripts
   27-Jun-2021  - V0.21 Adjust handling of defaults for formatOutput parameter in __formatSearchResults()
    4-Jul-2021  - V0.22 Add new tests for searchDatabase() and make sensitivity adjustable in tests
+  11-Jul-2021  - V0.23 Add getAlignedRegions() convenience method

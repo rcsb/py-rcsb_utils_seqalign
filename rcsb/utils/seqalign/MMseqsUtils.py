@@ -29,6 +29,7 @@ __license__ = "Apache 2.0"
 
 import logging
 import os
+import re
 import uuid
 
 from rcsb.utils.io.ExecUtils import ExecUtils
@@ -661,3 +662,54 @@ class MMseqsUtils(object):
         #
         logger.info("Query match count %d", len(mD))
         return mD
+
+    def __parseCigar(self, cigarString):
+        """Parse the subset of CIGAR (Compact Idiosyncratic Gapped Alignment Report) codes used by mmseqs2
+           string into tuple of count an action code.
+
+        Args:
+            cigarString (str): CIGAR string
+
+        Yields:
+            tuples: (count, CIGAR code)
+        """
+        pattern = re.compile(r"\d+[MID]{1}")
+        elementL = pattern.findall(cigarString)
+        for element in elementL:
+            #      count        ,    CIGAR code
+            yield int(element[:-1]), element[-1]
+
+    def getAlignedRegions(self, cigarString, queryStart, targetStart):
+        """Return the list of aligned region boundaries for the input query an target sequences
+           based on the alignment described by the input CIGAR (Compact Idiosyncratic Gapped Alignment Report) strings.
+
+           Alignment cigar. Each position contains either M (match), D (deletion, gap in query), or I (Insertion, gap in target)
+
+        Args:
+            cigarString (str): CIGAR string
+            queryStart (int): alignment starting index in query sequence
+            targetStart (int): alignment starting index in target sequence
+
+        Returns:
+            list: tuples of (count, CIGAR code)
+        """
+        #
+        qStart = queryStart
+        tStart = targetStart
+        #
+        alR = []
+        for count, cType in self.__parseCigar(cigarString):
+            logger.debug("count %d cType %s", count, cType)
+            #
+            if cType in ["M", "X", "="]:
+                alR.append({"queryBegin": qStart, "queryEnd": qStart + count - 1, "targetBegin": tStart, "targetEnd": tStart + count - 1})
+                qStart += count
+                tStart += count
+            elif cType in ["D"]:
+                tStart += count
+            elif cType in ["I"]:
+                qStart += count
+            else:
+                logger.error("Unrecognized CIGAR code %r", cType)
+        logger.debug("Aligned regions %r", alR)
+        return alR
