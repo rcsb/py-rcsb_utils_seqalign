@@ -254,7 +254,7 @@ class MMseqsUtilsTests(unittest.TestCase):
         alR = mmS.getAlignedRegions(sD["cigar"], sD["queryStart"], sD["targetStart"])
         self.assertEqual(alR[-1]["queryEnd"], sD["queryEnd"])
         self.assertEqual(alR[-1]["targetEnd"], sD["targetEnd"])
-        logger.debug("align regions %r", alR)
+        logger.debug("Aligned regions %r", alR)
 
 
 def suiteCreateDatabases():

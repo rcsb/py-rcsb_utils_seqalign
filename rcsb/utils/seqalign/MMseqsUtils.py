@@ -614,7 +614,7 @@ class MMseqsUtils(object):
                     "queryLen": 1103,
                     "targetLen": 1073,
                     "queryAlign": "LTLTLFQSLLIGPSSEEPFPSAVTIKSWVDKM...",
-                    "targetAlign": "LTLWQAWLILIGPSSEEPFPSAVTIKSWVDKM...",ß
+                    "targetAlign": "LTLWQAWLILIGPSSEEPFPSAVTIKSWVDKM...",
                     "cigar": "1063M"
                     },..,],...
                     }
@@ -637,6 +637,11 @@ class MMseqsUtils(object):
                 if "bitScore" in sD and bs and float(sD["bitScore"]) < bs:
                     # logger.debug("skipping %r < %r %r", sD["bitScore"], bs, query)
                     continue
+            # --
+            alR = []
+            if "cigar" in sD and "queryStart" in sD and "targetStart" in sD:
+                alR = self.getAlignedRegions(sD["cigarString"], sD["queryStart"], sD["targetStart"])
+            sD["alignedRegions"] = alR
             # --
             if useTaxonomy:
                 targetTaxId = int(sD["targetTaxId"]) if "targetTaxId" in sD else None
