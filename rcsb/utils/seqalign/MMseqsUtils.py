@@ -553,7 +553,7 @@ class MMseqsUtils(object):
     def __getNcbiTaxonomyDatabaseDump(self, ncbiTaxonomyDumpPath):
         ok = False
         try:
-            self.__taxU = TaxonomyProvider(taxDirPath=ncbiTaxonomyDumpPath, useCache=True)
+            self.__taxU = TaxonomyProvider(taxDirPath=ncbiTaxonomyDumpPath, useCache=False, cleanup=False)
             ok = self.__taxU.testCache()
         except Exception as e:
             logger.exception("Failing with %s", str(e))

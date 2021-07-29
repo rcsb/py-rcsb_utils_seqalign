@@ -44,7 +44,6 @@ class MMseqsUtilsTests(unittest.TestCase):
     def setUp(self):
         self.__workPath = os.path.join(HERE, "test-output", "CACHE")
         self.__dataPath = os.path.join(HERE, "test-data")
-        self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         #
         self.__seqDbTopPath = os.path.join(self.__workPath, "db")
         self.__timeOut = 3600

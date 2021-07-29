@@ -14,3 +14,4 @@
    4-Jul-2021  - V0.22 Add new tests for searchDatabase() and make sensitivity adjustable in tests
   11-Jul-2021  - V0.23 Add getAlignedRegions() convenience method
   11-Jul-2021  - V0.24 Add aligned regions to the default query results data structure
+  29-Jul-2021  - V0.25 Disable cleanup of taxonomy download files in TaxonomyProvider()
