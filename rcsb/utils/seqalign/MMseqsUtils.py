@@ -720,7 +720,7 @@ class MMseqsUtils(object):
         logger.debug("Aligned regions %r", alR)
         return alR
 
-    def cluster(self, input_fasta_file, id_level: int, coverage, strategy, out_base_dir, final_clusters_out_file, workers=1, timeOut=0):
+    def cluster(self, input_fasta_file, id_level: int, coverage, strategy, out_base_dir, final_clusters_out_file, workers=1, timeOut=None):
         """
         Runs mmseqs2 clustering workflow and writes out a final_clusters_out_file with one line per cluster.
         Each line contains the space separated member ids (ids are the ones extracted from input FASTA file)
@@ -732,7 +732,7 @@ class MMseqsUtils(object):
         this will be mmseqs's temp dir
         :param final_clusters_out_file the final output clusters file
         :param workers the number of worker threads for mmseqs to use
-        :param timeOut a time out in seconds, if 0 no timeout
+        :param timeOut a time out in seconds, if None: no timeout
         """
         out_file = os.path.join(out_base_dir, "mmseqs-%d" % id_level)
 
@@ -764,10 +764,6 @@ class MMseqsUtils(object):
         ok = exU.run(
             self.__mmseqs2BinPath,
             execArgList=cmdArgs,
-            # TODO what is logPath for?
-            #outPath=logPath,
-            outAppend=True,
-            # TODO is 0 timeout really no timeout?
             timeOut=timeOut,
         )
 
