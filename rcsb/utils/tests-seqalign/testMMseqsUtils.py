@@ -255,6 +255,30 @@ class MMseqsUtilsTests(unittest.TestCase):
         self.assertEqual(alR[-1]["targetEnd"], sD["targetEnd"])
         logger.debug("Aligned regions %r", alR)
 
+    def testClustering(self):
+        """Test case -  clustering"""
+        try:
+            inFile = os.path.join(self.__dataPath, "sabdab-targets.fa")
+            clustersOutFile = "/tmp/seqclusters-test.txt"
+            mmS = MMseqsUtils(cachePath=self.__workPath)
+            mmS.cluster(inFile, 50, 0.8, "easy-cluster", "/tmp", clustersOutFile)
+            self.assertTrue(os.path.exists(clustersOutFile))
+            # compare number of sequences in input and output
+            countSeqsIn = 0
+            countSeqsOut = 0
+            with open(inFile, "r") as f:
+                for line in f.readlines():
+                    if line.startswith(">"):
+                        countSeqsIn = countSeqsIn + 1
+            with open(clustersOutFile, "r") as f:
+                for line in f.readlines():
+                    countSeqsOut = countSeqsOut + len(line.split(" "))
+            self.assertEqual(countSeqsIn, countSeqsOut)
+
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
 
 def suiteCreateDatabases():
     suiteSelect = unittest.TestSuite()

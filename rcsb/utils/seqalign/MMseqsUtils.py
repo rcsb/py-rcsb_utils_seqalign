@@ -725,15 +725,15 @@ class MMseqsUtils(object):
         """
         Runs mmseqs2 clustering workflow and writes out a final_clusters_out_file with one line per cluster.
         Each line contains the space separated member ids (ids are the ones extracted from input FASTA file)
-        :param inputFastaFile the input FASTA file with sequences to cluster
-        :param idLevel the level expressed as percentage (int)
-        :param coverage the coverage threshold for clustering range [0, 1]
-        :param strategy the MMseqs impl to use for clustering: 'easy-cluster' | 'easy-linclust'
-        :param outBaseDir the output working directory where mmseqs will write all intermediate files, a subdir of
+        :param inputFastaFile: the input FASTA file with sequences to cluster
+        :param idLevel: the level expressed as percentage (int)
+        :param coverage: the coverage threshold for clustering range [0, 1]
+        :param strategy: the MMseqs impl to use for clustering: 'easy-cluster' | 'easy-linclust'
+        :param outBaseDir: the output working directory where mmseqs will write all intermediate files, a subdir of
         this will be mmseqs's temp dir
-        :param finalClustersOutFile the final output clusters file
-        :param workers the number of worker threads for mmseqs to use
-        :param timeOut a time out in seconds, if None: no timeout
+        :param finalClustersOutFile: the final output clusters file
+        :param workers: the number of worker threads for mmseqs to use
+        :param timeOut: a time out in seconds, if None: no timeout
         """
         outFile = os.path.join(outBaseDir, "mmseqs-%d" % idLevel)
 
