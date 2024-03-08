@@ -720,35 +720,36 @@ class MMseqsUtils(object):
         logger.debug("Aligned regions %r", alR)
         return alR
 
-    def cluster(self, input_fasta_file, id_level: int, coverage, strategy, out_base_dir, final_clusters_out_file, workers=1, timeOut=None):
+    def cluster(self, inputFastaFile: str, idLevel: int, coverage: float, strategy: str, outBaseDir: str,
+                finalClustersOutFile: str, workers: int = 1, timeOut: int = None):
         """
         Runs mmseqs2 clustering workflow and writes out a final_clusters_out_file with one line per cluster.
         Each line contains the space separated member ids (ids are the ones extracted from input FASTA file)
-        :param input_fasta_file the input FASTA file with sequences to cluster
-        :param id_level the level expressed as percentage (int)
+        :param inputFastaFile the input FASTA file with sequences to cluster
+        :param idLevel the level expressed as percentage (int)
         :param coverage the coverage threshold for clustering range [0, 1]
         :param strategy the MMseqs impl to use for clustering: 'easy-cluster' | 'easy-linclust'
-        :param out_base_dir the output working directory where mmseqs will write all intermediate files, a subdir of
+        :param outBaseDir the output working directory where mmseqs will write all intermediate files, a subdir of
         this will be mmseqs's temp dir
-        :param final_clusters_out_file the final output clusters file
+        :param finalClustersOutFile the final output clusters file
         :param workers the number of worker threads for mmseqs to use
         :param timeOut a time out in seconds, if None: no timeout
         """
-        out_file = os.path.join(out_base_dir, "mmseqs-%d" % id_level)
+        outFile = os.path.join(outBaseDir, "mmseqs-%d" % idLevel)
 
-        tmp_dir = os.path.join(out_base_dir, "temp-dir-%d" % id_level)
-        if not os.path.exists(tmp_dir):
-            os.makedirs(tmp_dir)
+        tmpDir = os.path.join(outBaseDir, "temp-dir-%d" % idLevel)
+        if not os.path.exists(tmpDir):
+            os.makedirs(tmpDir)
 
         # mmseqs easy-cluster pdb_seqres_pr.fasta cluster$idlevel tmp --min-seq-id $idlevel -c 0.80 -s 8 --max-seqs 1000 --cluster-mode 1
         # mmseqs easy-linclust pdb_seqres_pr.fasta cluster$idlevel tmp --min-seq-id $idlevel -c 0.80 --cluster-mode 1 --threads 8
 
         cmdArgs = [
             strategy,
-            input_fasta_file,
-            out_file,
-            tmp_dir,  # tmp dir under out_file's dir
-            "--min-seq-id", str(id_level/100.0),
+            inputFastaFile,
+            outFile,
+            tmpDir,  # tmp dir under out_file's dir
+            "--min-seq-id", str(idLevel/100.0),
             "-c", str(coverage),
             "--cluster-mode", "1",
             "--threads", str(workers)
@@ -769,16 +770,16 @@ class MMseqsUtils(object):
 
         if ok:
             # if successful, remove temp files
-            shutil.rmtree(tmp_dir)
+            shutil.rmtree(tmpDir)
         else:
             raise ValueError("Problems running mmseqs clustering command")
 
         # mmseqs appends a '_cluster.tsv' to the final file
-        out_file = out_file+'_cluster.tsv'
-        if not os.path.exists(out_file) or os.stat(out_file).st_size == 0:
+        outFile = outFile+'_cluster.tsv'
+        if not os.path.exists(outFile) or os.stat(outFile).st_size == 0:
             raise ValueError("The file generated from mmseqs does not exist or is empty.")
 
-        self.__formatClusters(out_file, final_clusters_out_file)
+        self.__formatClusters(outFile, finalClustersOutFile)
 
     def __formatClusters(self, tsvFile, clusters_out_file):
         """
@@ -815,9 +816,9 @@ class MMseqsUtils(object):
         return list(clusterMap.values())
 
     @staticmethod
-    def __writeClusters(clusterList, clusters_out_file):
+    def __writeClusters(clusterList, clustersOutFile):
         sortList = sorted(clusterList, key=lambda data: (-data[0], data[1]))
-        f = open(clusters_out_file, 'w')
+        f = open(clustersOutFile, 'w')
         for tList in sortList:
             f.write(' '.join(tList[1]) + '\n')
         f.close()
