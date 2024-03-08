@@ -31,6 +31,7 @@ import logging
 import os
 import re
 import uuid
+import shutil
 
 from rcsb.utils.io.ExecUtils import ExecUtils
 from rcsb.utils.io.MarshalUtil import MarshalUtil
@@ -718,3 +719,109 @@ class MMseqsUtils(object):
                 logger.error("Unrecognized CIGAR code %r", cType)
         logger.debug("Aligned regions %r", alR)
         return alR
+
+    def cluster(self, input_fasta_file, id_level: int, coverage, strategy, out_base_dir, final_clusters_out_file, workers=1, timeOut=0):
+        """
+        Runs mmseqs2 clustering workflow and writes out a final_clusters_out_file with one line per cluster.
+        Each line contains the space separated member ids (ids are the ones extracted from input FASTA file)
+        :param input_fasta_file the input FASTA file with sequences to cluster
+        :param id_level the level expressed as percentage (int)
+        :param coverage the coverage threshold for clustering range [0, 1]
+        :param strategy the MMseqs impl to use for clustering: 'easy-cluster' | 'easy-linclust'
+        :param out_base_dir the output working directory where mmseqs will write all intermediate files, a subdir of
+        this will be mmseqs's temp dir
+        :param final_clusters_out_file the final output clusters file
+        :param workers the number of worker threads for mmseqs to use
+        :param timeOut a time out in seconds, if 0 no timeout
+        """
+        out_file = os.path.join(out_base_dir, "mmseqs-%d" % id_level)
+
+        tmp_dir = os.path.join(out_base_dir, "temp-dir-%d" % id_level)
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        # mmseqs easy-cluster pdb_seqres_pr.fasta cluster$idlevel tmp --min-seq-id $idlevel -c 0.80 -s 8 --max-seqs 1000 --cluster-mode 1
+        # mmseqs easy-linclust pdb_seqres_pr.fasta cluster$idlevel tmp --min-seq-id $idlevel -c 0.80 --cluster-mode 1 --threads 8
+
+        cmdArgs = [
+            strategy,
+            input_fasta_file,
+            out_file,
+            tmp_dir,  # tmp dir under out_file's dir
+            "--min-seq-id", str(id_level/100.0),
+            "-c", str(coverage),
+            "--cluster-mode", "1",
+            "--threads", str(workers)
+        ]
+        if strategy == "easy-cluster":
+            cmdArgs.extend([
+                "-s", "8",
+                "--max-seqs", "1000"
+            ])
+
+        logger.info("Will run command '%s %s'" % (self.__mmseqs2BinPath, " ".join(cmdArgs)))
+        exU = ExecUtils()
+        ok = exU.run(
+            self.__mmseqs2BinPath,
+            execArgList=cmdArgs,
+            # TODO what is logPath for?
+            #outPath=logPath,
+            outAppend=True,
+            # TODO is 0 timeout really no timeout?
+            timeOut=timeOut,
+        )
+
+        if ok:
+            # if successful, remove temp files
+            shutil.rmtree(tmp_dir)
+        else:
+            raise ValueError("Problems running mmseqs clustering command")
+
+        # mmseqs appends a '_cluster.tsv' to the final file
+        out_file = out_file+'_cluster.tsv'
+        if not os.path.exists(out_file) or os.stat(out_file).st_size == 0:
+            raise ValueError("The file generated from mmseqs does not exist or is empty.")
+
+        self.__formatClusters(out_file, final_clusters_out_file)
+
+    def __formatClusters(self, tsvFile, clusters_out_file):
+        """
+           Parse mmseqs tsv clusters files and write them out to a file with one line per cluster
+        """
+        clusterList = self.__readClusters(tsvFile)
+        entityList = []
+        for cluster in clusterList:
+            entityList.append([len(cluster), sorted(cluster)])
+
+        self.__writeClusters(entityList, clusters_out_file)
+
+    @staticmethod
+    def __readClusters(tsvFile):
+        """
+           Read mmseqs2 cluster tsv output file
+        """
+        f = open(tsvFile, 'r')
+        data = f.read()
+        f.close()
+        #
+        clusterMap = {}
+        for line in data.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            #
+            cluster = line.split('\t')
+            if cluster[0] in clusterMap:
+                clusterMap[cluster[0]].append(cluster[1])
+            else:
+                clusterMap[cluster[0]] = [cluster[1]]
+
+        return list(clusterMap.values())
+
+    @staticmethod
+    def __writeClusters(clusterList, clusters_out_file):
+        sortList = sorted(clusterList, key=lambda data: (-data[0], data[1]))
+        f = open(clusters_out_file, 'w')
+        for tList in sortList:
+            f.write(' '.join(tList[1]) + '\n')
+        f.close()
