@@ -797,7 +797,7 @@ class MMseqsUtils(object):
         """
            Read mmseqs2 cluster tsv output file
         """
-        f = open(tsvFile, 'r')
+        f = open(tsvFile, "r", encoding="utf-8")
         data = f.read()
         f.close()
         #
