@@ -818,7 +818,7 @@ class MMseqsUtils(object):
     @staticmethod
     def __writeClusters(clusterList, clustersOutFile):
         sortList = sorted(clusterList, key=lambda data: (-data[0], data[1]))
-        f = open(clustersOutFile, 'w')
+        f = open(clustersOutFile, "w", encoding="utf-8")
         for tList in sortList:
             f.write(' '.join(tList[1]) + '\n')
         f.close()
