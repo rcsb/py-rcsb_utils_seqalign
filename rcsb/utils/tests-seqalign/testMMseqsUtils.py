@@ -270,7 +270,7 @@ class MMseqsUtilsTests(unittest.TestCase):
                 for line in f.readlines():
                     if line.startswith(">"):
                         countSeqsIn = countSeqsIn + 1
-            with open(clustersOutFile, "r") as f:
+            with open(clustersOutFile, "r", encoding="utf-8") as f:
                 for line in f.readlines():
                     countSeqsOut = countSeqsOut + len(line.split(" "))
             self.assertEqual(countSeqsIn, countSeqsOut)
