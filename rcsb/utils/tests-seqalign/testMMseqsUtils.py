@@ -266,7 +266,7 @@ class MMseqsUtilsTests(unittest.TestCase):
             # compare number of sequences in input and output
             countSeqsIn = 0
             countSeqsOut = 0
-            with open(inFile, "r") as f:
+            with open(inFile, "r", encoding="utf-8") as f:
                 for line in f.readlines():
                     if line.startswith(">"):
                         countSeqsIn = countSeqsIn + 1
