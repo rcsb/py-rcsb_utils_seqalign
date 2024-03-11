@@ -760,7 +760,7 @@ class MMseqsUtils(object):
                 "--max-seqs", "1000"
             ])
 
-        logger.info("Will run command '%s %s'" % (self.__mmseqs2BinPath, " ".join(cmdArgs)))
+        logger.info("Will run command '%s %s'", self.__mmseqs2BinPath, " ".join(cmdArgs))
         exU = ExecUtils()
         ok = exU.run(
             self.__mmseqs2BinPath,
