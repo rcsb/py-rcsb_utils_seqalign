@@ -4,6 +4,7 @@
 # Date:    26-Oct-2020
 #
 # Updates:
+#  20-Aug-2024 dwp Add 'useTaxonomyCache' argument to control re-downloading of taxonomy data
 #
 ##
 """
@@ -550,22 +551,32 @@ class MMseqsUtils(object):
             logger.exception("Failing for %r (%r) with %s", inpFileName, fmtOut, str(e))
         return ok
 
-    def __getNcbiTaxonomyDatabaseDump(self, ncbiTaxonomyDumpPath):
+    def __getNcbiTaxonomyDatabaseDump(self, ncbiTaxonomyDumpPath, useCache=False):
         ok = False
         try:
-            self.__taxU = TaxonomyProvider(taxDirPath=ncbiTaxonomyDumpPath, useCache=False, cleanup=False)
+            self.__taxU = TaxonomyProvider(taxDirPath=ncbiTaxonomyDumpPath, useCache=useCache, cleanup=False)
             ok = self.__taxU.testCache()
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def getMatchResults(self, jsonSearchResultPath, queryTaxonomyMappingPath=None, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0, useBitScore=False):
+    def getMatchResults(
+        self,
+        jsonSearchResultPath,
+        queryTaxonomyMappingPath=None,
+        useTaxonomy=False,
+        useTaxonomyCache=False,
+        misMatchCutoff=-1,
+        sequenceIdentityCutoff=95.0,
+        useBitScore=False
+    ):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
             jsonSearchResultPath (str): input search results path (format=json)
             queryTaxonomyMappingPath (str, optional): input taxon mapping file (format=tdd). Defaults to None.
             useTaxonomy (bool, optional): filter results on matching taxonomy. Defaults to False.
+            useTaxonomyCache (bool, optional): use pre-built taxonomy cache. Defaults to False.
             misMatchCutoff (int, optional): filter output on residue mismatches. Defaults to -1. (not used)
             sequenceIdentityCutoff (float, optional): minimum sequence identity. Defaults to 95.0.
             useBitScore (bool, optional): filter results comparing bit scores in the query comment. Defaults to False.
@@ -579,10 +590,18 @@ class MMseqsUtils(object):
         if useTaxonomy and queryTaxonomyMappingPath:
             rowL = self.__mU.doImport(queryTaxonomyMappingPath, fmt="tdd", rowFormat="list")
             queryTaxonD = {row[0]: int(row[1]) for row in rowL if isinstance(row[1], int)}
-        mD = self.__getMatchResults(rL, queryTaxonD, useTaxonomy=useTaxonomy, misMatchCutoff=misMatchCutoff, sequenceIdentityCutoff=sequenceIdentityCutoff, useBitScore=useBitScore)
+        mD = self.__getMatchResults(
+            rL,
+            queryTaxonD,
+            useTaxonomy=useTaxonomy,
+            useTaxonomyCache=useTaxonomyCache,
+            misMatchCutoff=misMatchCutoff,
+            sequenceIdentityCutoff=sequenceIdentityCutoff,
+            useBitScore=useBitScore
+        )
         return mD
 
-    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0, useBitScore=False):
+    def __getMatchResults(self, searchDictL, queryTaxonD, useTaxonomy=False, useTaxonomyCache=False, misMatchCutoff=-1, sequenceIdentityCutoff=95.0, useBitScore=False):
         """Get matches applying input criteria on taxonomy, mismatches and sequence identity.
 
         Args:
@@ -621,7 +640,7 @@ class MMseqsUtils(object):
         """
         if useTaxonomy and not self.__taxU:
             logger.info("useTaxonomy flag (%r)", useTaxonomy)
-            self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath)
+            self.__getNcbiTaxonomyDatabaseDump(self.__taxDirPath, useCache=useTaxonomyCache)
         mD = {}
         logger.info("Starting search result with (%r) records", len(searchDictL))
         for sD in searchDictL:
