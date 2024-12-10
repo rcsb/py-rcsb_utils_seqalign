@@ -5,6 +5,7 @@
 #
 # Updates:
 #  20-Aug-2024 dwp Add 'useTaxonomyCache' argument to control re-downloading of taxonomy data
+#  10-Dec-2024 dwp Add support for 'max-seqs' flag in mmseqs search
 #
 ##
 """
@@ -198,6 +199,7 @@ class MMseqsUtils(object):
             timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
             sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
             eValCutoff  (int, optional): e-Value cuttoff (default= 100)
+            maxSeqs (int): Maximum results per query sequence allowed to pass the prefilter (affects sensitivity). Defaults to 300.
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -230,6 +232,7 @@ class MMseqsUtils(object):
             timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
             sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
             eValCutoff  (int, optional): e-Value cuttoff (default= 100)
+            maxSeqs (int): Maximum results per query sequence allowed to pass the prefilter (affects sensitivity). Defaults to 300.
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -275,6 +278,7 @@ class MMseqsUtils(object):
             timeOut (int, optional): time out for the process execution. Defaults to 100 secs.
             sensitivity (float, optional): sensitivity for prefilter search (1-8) (default = 1)
             eValCutoff  (int, optional): e-Value cuttoff (default= 100)
+            maxSeqs (int): Maximum results per query sequence allowed to pass the prefilter (affects sensitivity). Defaults to 300.
             formatMode (int, optional): 0: BLAST 1: SAM 2: BLAST+ 3: HTML (default: None)
             formatOutput (str, optional): output column selection (default: "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
 
@@ -314,6 +318,7 @@ class MMseqsUtils(object):
             sensitivity = kwargs.get("sensitivity", 1.0)
             eValCutoff = kwargs.get("eValCutoff", 100)
             appendMode = kwargs.get("appendMode", False)
+            maxSeqs = kwargs.get("maxSeqs", 300)
 
             exU = ExecUtils()
             ok = exU.run(
@@ -333,6 +338,8 @@ class MMseqsUtils(object):
                     str(eValCutoff),
                     "-s",
                     str(sensitivity),
+                    "--max-seqs",
+                    str(maxSeqs),
                     # "--cov-mode",
                     # "1",
                     # "-c",
@@ -355,6 +362,7 @@ class MMseqsUtils(object):
             timeOut = kwargs.get("timeOut", 3600)
             sensitivity = kwargs.get("sensitivity", 1)
             eValCutoff = kwargs.get("eValCutoff", 100)
+            maxSeqs = kwargs.get("maxSeqs", 300)
             formatMode = kwargs.get("formatMode", None)
             formatOutput = kwargs.get("formatOutput", "query,target,pident,evalue,qlen,tlen,alnlen,taxid,taxname")
             timeOut = kwargs.get("timeOut", 3600)
@@ -365,7 +373,23 @@ class MMseqsUtils(object):
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
-                execArgList=["easy-search", fastaPath, dbPath, resultPath, tmpDir, "--min-seq-id", str(minSeqId), "-s", str(sensitivity), "-a", "true", "-e", str(eValCutoff)] + fOptL,
+                execArgList=[
+                    "easy-search",
+                    fastaPath,
+                    dbPath,
+                    resultPath,
+                    tmpDir,
+                    "--min-seq-id",
+                    str(minSeqId),
+                    "-s",
+                    str(sensitivity),
+                    "-a",
+                    "true",
+                    "-e",
+                    str(eValCutoff),
+                    "--max-seqs",
+                    str(maxSeqs),
+                ] + fOptL,
                 outPath=outPath,
                 outAppend=True,
                 timeOut=timeOut,

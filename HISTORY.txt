@@ -20,3 +20,4 @@
    1-Jul-2024  - V0.28 Update package version with latest setuptools
   20-Aug-2024  - V0.29 Add 'useTaxonomyCache' argument to control re-downloading of taxonomy data
    9-Dec-2024  - V0.30 Update Azure pipelines to use latest macOS, Ubuntu, and python 3.10
+  10-Dec-2024  - V0.31 Add support for 'max-seqs' flag in mmseqs search
