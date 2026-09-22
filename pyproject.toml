@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rcsb.utils.seqalign"
 description = "RCSB Python Wrapper Module for Sequence Alignment Utilities"
-version = "0.32"
+version = "0.33"
 readme = "README.md"
 authors = [
     { name="John Westbrook", email="john.westbrook@rcsb.org" }

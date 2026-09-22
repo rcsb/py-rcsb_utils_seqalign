@@ -174,10 +174,21 @@ class MMseqsUtils(object):
         """
         ok = False
         try:
+            # Recent MMseqs2 builds abort in convertalis ("Invalid node -1!") when the taxonomy mapping
+            # contains negative/invalid taxon ids, so pass MMseqs2 a sanitized copy in which these are set to 0
+            # ("unclassified"). The copy keeps the original file name but lives in a separate directory, so
+            # the original mapping file (which callers reuse, e.g. for getMatchResults()) is left untouched.
+            sanitizedDir = os.path.join(tmpDir, "sanitized-taxon-mapping")
+            self.__mU.mkdir(sanitizedDir)
+            sanitizedMappingPath = os.path.join(sanitizedDir, os.path.basename(taxonomyMappingPath))
+            if os.path.abspath(sanitizedMappingPath) == os.path.abspath(taxonomyMappingPath):
+                logger.error("Sanitized taxonomy mapping path would overwrite the input file %r", taxonomyMappingPath)
+                return False
+            self.__sanitizeTaxonomyMappingFile(taxonomyMappingPath, sanitizedMappingPath)
             exU = ExecUtils()
             ok = exU.run(
                 self.__mmseqs2BinPath,
-                execArgList=["createtaxdb", dbPath, tmpDir, "--ncbi-tax-dump", self.__taxDirPath, "--tax-mapping-file", taxonomyMappingPath],
+                execArgList=["createtaxdb", dbPath, tmpDir, "--ncbi-tax-dump", self.__taxDirPath, "--tax-mapping-file", sanitizedMappingPath],
                 outPath=outPath,
                 outAppend=True,
                 timeOut=timeOut,
@@ -186,6 +197,33 @@ class MMseqsUtils(object):
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
+
+    def __sanitizeTaxonomyMappingFile(self, inpPath, outPath):
+        """Copy a taxonomy mapping file (<sequence id><tab><taxon id>), setting any taxon id that is not a
+        positive integer (e.g., the -1 placeholder used for unknown sources, or an empty/non-numeric value)
+        to 0, which MMseqs2 treats as "unclassified". Blank lines are skipped; all other rows are retained.
+
+        Args:
+            inpPath (str): input taxonomy mapping file path
+            outPath (str): output (sanitized) taxonomy mapping file path
+
+        Returns:
+            (int): number of rows whose taxon id was reset to 0
+        """
+        numReset = 0
+        with open(inpPath, "r", encoding="utf-8") as ifh, open(outPath, "w", encoding="utf-8") as ofh:
+            for line in ifh:
+                fields = line.rstrip("\r\n").split("\t")
+                if not fields[0].strip():
+                    continue
+                taxId = fields[1].strip() if len(fields) > 1 else ""
+                if not taxId.isdigit() or int(taxId) <= 0:
+                    numReset += 1
+                    fields = [fields[0], "0"] + fields[2:]
+                ofh.write("\t".join(fields) + "\n")
+        if numReset:
+            logger.info("Set %d invalid taxon ids to 0 (unclassified) in sanitized copy of %r", numReset, inpPath)
+        return numReset
 
     def easySearchDatabase(self, fastaPath, seqDbTopPath, seqDbName, resultPath, **kwargs):
         """Search sequence database with the input FASTA file
