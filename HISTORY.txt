@@ -22,3 +22,4 @@
    9-Dec-2024  - V0.30 Update Azure pipelines to use latest macOS, Ubuntu, and python 3.10
   10-Dec-2024  - V0.31 Add support for 'max-seqs' flag in mmseqs search
    8-Dec-2025  - V0.32 Switch from setuptools to hatch build system and update pipelines to Python 3.13
+  22-Sep-2026  - V0.33 Set invalid (e.g., -1) taxon ids to 0 in the mapping passed to createtaxdb (fixes convertalis "Invalid node -1!" with latest MMseqs2)
